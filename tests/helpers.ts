@@ -1,6 +1,6 @@
 import type { MeasureFn } from '../src/render/text'
 import type { SlideItem, TextStyle } from '../src/model/types'
-import { defaultTheme, newPair, newSlide } from '../src/model/defaults'
+import { defaultTheme, newPair, newSlide, resolveTheme } from '../src/model/defaults'
 import { fitText } from '../src/render/text'
 import type { LayoutInput } from '../src/templates/types'
 import { canvasSizeFor } from '../src/templates/registry'
@@ -22,7 +22,8 @@ export function layoutInput(item: SlideItem, screenshotSize: { w: number; h: num
     canvasW: w,
     canvasH: h,
     item,
-    resolvedTheme: defaultTheme(),
+    // Same as renderItem: the item's own overrides are resolved over the theme.
+    resolvedTheme: resolveTheme(defaultTheme(), item.overrides),
     screenshotSize,
     measureText: fakeMeasureText,
   }

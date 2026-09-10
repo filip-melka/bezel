@@ -49,3 +49,14 @@ describe('clampItemToTemplate', () => {
     expect(clampItemToTemplate(s).device.scale).toBe(0.7)
   })
 })
+
+describe('clampItemToTemplate on pairs', () => {
+  it('clamps both text offsets independently', () => {
+    const p = newPair('panorama')
+    p.textNudge = { offsetY: -9999 }
+    p.textNudgeRight = { offsetY: 9999 }
+    const c = clampItemToTemplate(p)
+    expect(c.textNudge.offsetY).toBe(-100)
+    expect(c.textNudgeRight.offsetY).toBe(200)
+  })
+})

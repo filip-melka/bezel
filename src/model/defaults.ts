@@ -8,6 +8,9 @@ import type {
   SlideTemplateId,
   TextStyle,
   Theme,
+  Overrides,
+  TextStyleKey,
+  WidgetState,
 } from './types'
 
 export function uuid(): string {
@@ -40,6 +43,10 @@ export function defaultTheme(): Theme {
   }
 }
 
+export function defaultWidget(): WidgetState {
+  return { crop: null, screen: 'screenshot', scale: null, offsetY: 0, notFound: false }
+}
+
 export function newSlide(template: SlideTemplateId = 'textTop'): Slide {
   return {
     kind: 'slide',
@@ -54,7 +61,7 @@ export function newSlide(template: SlideTemplateId = 'textTop'): Slide {
   }
 }
 
-export function newPair(template: PairTemplateId = 'panoLeftText'): Pair {
+export function newPair(template: PairTemplateId = 'panorama'): Pair {
   return {
     kind: 'pair',
     id: uuid(),
@@ -62,6 +69,9 @@ export function newPair(template: PairTemplateId = 'panoLeftText'): Pair {
     screenshot: null,
     headline: '',
     subheadline: '',
+    headlineRight: '',
+    subheadlineRight: '',
+    textNudgeRight: { offsetY: 0 },
     device: { scale: 1, offsetY: 0 },
     textNudge: { offsetY: 0 },
     overrides: {},
@@ -75,10 +85,19 @@ export function newProject(name: string): Project {
     name,
     createdAt: now,
     updatedAt: now,
-    schemaVersion: 1,
+    schemaVersion: 2,
     theme: defaultTheme(),
     items: [newSlide('textTop')],
   }
+}
+
+// Resolved style for one text slot on an item. Left slots layer the item's
+// override over the set theme; right slots (pairs) layer theirs over the
+// resolved left style, so an un-customised right side follows the left.
+export function resolveTextStyle(theme: Theme, overrides: Overrides, key: TextStyleKey): TextStyle {
+  if (key === 'headlineRight') return { ...resolveTextStyle(theme, overrides, 'headline'), ...overrides.headlineRight }
+  if (key === 'subheadlineRight') return { ...resolveTextStyle(theme, overrides, 'subheadline'), ...overrides.subheadlineRight }
+  return { ...theme[key], ...overrides[key] }
 }
 
 export function resolveTheme(theme: Theme, overrides: Slide['overrides']): Theme {

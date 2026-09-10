@@ -3,7 +3,7 @@ import type { RenderReport } from '../render/renderItem'
 
 export type ToastAction = { label: string; onClick: () => void }
 export type Toast = { id: number; message: string; action?: ToastAction }
-export type SheetKind = 'add' | 'exportConfirm' | null
+export type SheetKind = 'add' | 'exportConfirm' | 'widget' | null
 export type InspectorTab = 'slide' | 'theme'
 export type ExportProgress = { done: number; total: number }
 

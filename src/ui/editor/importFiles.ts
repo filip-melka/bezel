@@ -3,6 +3,8 @@ import { ImportError, importScreenshot } from '../../persistence/assets'
 import { appendSlidesWithScreenshots, setScreenshot } from '../../store/actions'
 import { getProject } from '../../store/projectStore'
 import { toast, useUiStore } from '../../store/uiStore'
+import { templateFor } from '../../templates/registry'
+import { detectWidgetForItem } from '../../widgets/run'
 
 function reportError(e: unknown): void {
   if (e instanceof ImportError) toast(e.message)
@@ -44,6 +46,8 @@ export async function importFileToItem(file: File, itemId: string): Promise<void
     const ref = await importScreenshot(file, project.id)
     setScreenshot(itemId, ref)
     useUiStore.getState().bumpAssets()
+    const item = getProject()?.items.find((it) => it.id === itemId)
+    if (item && templateFor(item).widgetKind) await detectWidgetForItem(itemId)
   } catch (e) {
     reportError(e)
   }

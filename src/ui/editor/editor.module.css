@@ -552,6 +552,11 @@
   overflow-x: auto;
   padding: 4px calc((100vw - min(1180px, calc(100vw - 80px))) / 2) 16px;
   scroll-padding-inline-start: calc((100vw - min(1180px, calc(100vw - 80px))) / 2);
+  /* Still scrolls with trackpad, wheel, and keyboard; only the bar is hidden. */
+  scrollbar-width: none;
+}
+.storeStrip::-webkit-scrollbar {
+  display: none;
 }
 .storeSlot {
   flex: none;
@@ -564,4 +569,112 @@
   margin: 8px auto 0;
   font-size: 12.5px;
   color: var(--label-2);
+}
+
+/* ---------- Widget adjust sheet ---------- */
+.adjustWrap {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.adjustRoot {
+  position: relative;
+  flex: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+}
+.adjustCanvas {
+  display: block;
+}
+.adjustBox {
+  position: absolute;
+  box-shadow: 0 0 0 2px var(--tint), 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  cursor: move;
+}
+.adjustHandle {
+  position: absolute;
+  background: #fff;
+  border: 2px solid var(--tint);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.handle_nw {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+.handle_ne {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+.handle_sw {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+.handle_se {
+  bottom: -7px;
+  right: -7px;
+  cursor: nwse-resize;
+}
+.adjustSide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+.adjustFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.adjustField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.adjustField input {
+  width: 72px;
+}
+
+/* A segmented control that fills the rest of an inset-list row. */
+.segFill {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A labelled text field inside a text section (pairs show one per slide). */
+.textField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.textFieldHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+/* Divider between the left- and right-slide groups inside one text card. */
+.sideDivider {
+  height: 8px;
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--separator);
+  border-bottom: 1px solid var(--separator);
+}
+.sideLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label);
+}
+.stackLabel {
+  font-size: 13px;
 }

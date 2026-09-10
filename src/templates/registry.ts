@@ -1,7 +1,8 @@
 import type { PairTemplateId, SlideItem, SlideTemplateId, TemplateId } from '../model/types'
 import { deviceOnly } from './deviceOnly'
-import { panoLeftText } from './panoLeftText'
-import { panoRightText } from './panoRightText'
+import { island } from './island'
+import { lockActivity } from './lockActivity'
+import { panorama } from './panorama'
 import { panoTilted, panoTiltedRight } from './panoTilted'
 import { textBottom } from './textBottom'
 import { textTop } from './textTop'
@@ -13,8 +14,9 @@ export const TEMPLATES: Record<TemplateId, TemplateDef> = {
   textBottom,
   deviceOnly,
   tilted,
-  panoLeftText,
-  panoRightText,
+  lockActivity,
+  island,
+  panorama,
   panoTilted,
   panoTiltedRight,
 }
@@ -26,14 +28,15 @@ export const SHORT_NAMES: Record<TemplateId, string> = {
   textBottom: 'Bottom',
   deviceOnly: 'Device',
   tilted: 'Tilted',
-  panoLeftText: 'Left',
-  panoRightText: 'Right',
+  lockActivity: 'Lock',
+  island: 'Island',
+  panorama: 'Straight',
   panoTilted: 'Tilt left',
   panoTiltedRight: 'Tilt right',
 }
 
-export const SLIDE_TEMPLATE_IDS: SlideTemplateId[] = ['textTop', 'textBottom', 'deviceOnly', 'tilted']
-export const PAIR_TEMPLATE_IDS: PairTemplateId[] = ['panoLeftText', 'panoRightText', 'panoTilted', 'panoTiltedRight']
+export const SLIDE_TEMPLATE_IDS: SlideTemplateId[] = ['textTop', 'textBottom', 'deviceOnly', 'tilted', 'lockActivity', 'island']
+export const PAIR_TEMPLATE_IDS: PairTemplateId[] = ['panorama', 'panoTilted', 'panoTiltedRight']
 export const ALL_TEMPLATE_IDS: TemplateId[] = [...SLIDE_TEMPLATE_IDS, ...PAIR_TEMPLATE_IDS]
 
 export function getTemplate(id: TemplateId): TemplateDef {

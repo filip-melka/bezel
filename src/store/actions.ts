@@ -1,5 +1,5 @@
 import { canAdd, clampItemToTemplate, exportNumbers, rangeLabel, slotCost } from '../model/clamp'
-import { newPair, newSlide, uuid } from '../model/defaults'
+import { defaultWidget, newPair, newSlide, resolveTextStyle, uuid } from '../model/defaults'
 import type {
   Background,
   Overrides,
@@ -10,7 +10,9 @@ import type {
   SlideTemplateId,
   TemplateId,
   TextStyle,
+  TextStyleKey,
   Theme,
+  WidgetState,
 } from '../model/types'
 import { getTemplate } from '../templates/registry'
 import { resetBatches } from './history'
@@ -157,16 +159,28 @@ export function setTemplate(id: string, template: TemplateId): void {
   })
 }
 
-export function setItemText(id: string, key: 'headline' | 'subheadline', value: string): void {
-  updateItem(id, (item) => (item[key] === value ? item : { ...item, [key]: value }))
+export type TextKey = 'headline' | 'subheadline' | 'headlineRight' | 'subheadlineRight'
+
+// Right-slide keys exist only on pairs and are ignored for single slides.
+export function setItemText(id: string, key: TextKey, value: string): void {
+  updateItem(id, (item) => {
+    if ((key === 'headlineRight' || key === 'subheadlineRight') && item.kind !== 'pair') return item
+    const current = (item as Record<TextKey, string | undefined>)[key] ?? ''
+    return current === value ? item : ({ ...item, [key]: value } as SlideItem)
+  })
 }
 
 export function setDevice(id: string, patch: Partial<SlideItem['device']>): void {
   updateItem(id, (item) => clampItemToTemplate({ ...item, device: { ...item.device, ...patch } }))
 }
 
-export function setTextNudge(id: string, offsetY: number): void {
-  updateItem(id, (item) => clampItemToTemplate({ ...item, textNudge: { offsetY } }))
+// The right side applies to pairs only; for a single slide it is ignored.
+export function setTextNudge(id: string, offsetY: number, side: 'left' | 'right' = 'left'): void {
+  updateItem(id, (item) => {
+    if (side === 'left') return clampItemToTemplate({ ...item, textNudge: { offsetY } })
+    if (item.kind !== 'pair') return item
+    return clampItemToTemplate({ ...item, textNudgeRight: { offsetY } })
+  })
 }
 
 export function resetDevice(id: string): void {
@@ -181,11 +195,14 @@ export function setOverride<K extends keyof Overrides>(id: string, key: K, value
   updateItem(id, (item) => ({ ...item, overrides: { ...item.overrides, [key]: value } }))
 }
 
-export function patchTextOverride(id: string, key: 'headline' | 'subheadline', patch: Partial<TextStyle>): void {
+// Merges `patch` into the slot's resolved style and stores the result as a full
+// override. For a pair's right slot this snapshots the left style, so from then
+// on the right side is independent.
+export function patchTextOverride(id: string, key: TextStyleKey, patch: Partial<TextStyle>): void {
   const project = getProject()
   if (!project) return
   updateItem(id, (item) => {
-    const base = { ...project.theme[key], ...item.overrides[key], ...patch }
+    const base = { ...resolveTextStyle(project.theme, item.overrides, key), ...patch }
     return { ...item, overrides: { ...item.overrides, [key]: base } }
   })
 }
@@ -216,4 +233,10 @@ export function patchThemeText(key: 'headline' | 'subheadline', patch: Partial<T
 
 export function setBezel(patch: Partial<Theme['bezel']>): void {
   setTheme((t) => ({ ...t, bezel: { ...t.bezel, ...patch } }))
+}
+
+// Live Activity cut-out state. Missing on v1 projects, so patches merge over
+// the default.
+export function setWidget(id: string, patch: Partial<WidgetState>): void {
+  updateItem(id, (item) => ({ ...item, widget: { ...defaultWidget(), ...item.widget, ...patch } }))
 }

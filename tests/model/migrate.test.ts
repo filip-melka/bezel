@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { newProject } from '../../src/model/defaults'
-import { MigrationError, migrateProject } from '../../src/model/migrate'
+import { CURRENT_SCHEMA_VERSION, MigrationError, migrateProject, tryMigrateProject } from '../../src/model/migrate'
 
 describe('migrateProject', () => {
   it('accepts a current project unchanged', () => {
@@ -25,9 +25,44 @@ describe('migrateProject', () => {
       expect((e as MigrationError).code).toBe('invalid')
     }
   })
-  it('treats unversioned v1-shaped data as v1', () => {
+  it('treats unversioned data as v1 and migrates it to the current schema', () => {
     const { schemaVersion: _v, ...rest } = newProject('legacy')
     const out = migrateProject(rest)
-    expect(out.schemaVersion).toBe(1)
+    expect(out.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+  })
+  it('v1 → v2 merges Text left / Text right into Panorama and keeps text on its side', () => {
+    const base = { id: 'p', name: 'x', createdAt: 0, updatedAt: 0, schemaVersion: 1, theme: {} }
+    const pair = (template: string, headline: string) => ({ kind: 'pair', id: template, template, headline, subheadline: 'sub' })
+    const out = migrateProject({
+      ...base,
+      items: [
+        { kind: 'slide', id: 's', template: 'textTop', headline: 'keep', subheadline: '' },
+        pair('panoLeftText', 'L'),
+        pair('panoRightText', 'R'),
+        pair('panoTilted', 'TL'),
+        pair('panoTiltedRight', 'TR'),
+      ],
+    })
+    expect(out.schemaVersion).toBe(2)
+    const [slide, left, right, tiltL, tiltR] = out.items as unknown as Array<Record<string, string>>
+    expect(slide).toEqual({ kind: 'slide', id: 's', template: 'textTop', headline: 'keep', subheadline: '' })
+    expect(left).toMatchObject({ template: 'panorama', headline: 'L', subheadline: 'sub', headlineRight: '', subheadlineRight: '' })
+    expect(right).toMatchObject({ template: 'panorama', headline: '', subheadline: '', headlineRight: 'R', subheadlineRight: 'sub' })
+    expect(tiltL).toMatchObject({ template: 'panoTilted', headline: 'TL', headlineRight: '' })
+    expect(tiltR).toMatchObject({ template: 'panoTiltedRight', headline: '', headlineRight: 'TR', subheadlineRight: 'sub' })
+  })
+  it('gives pairs saved without a right text offset the shared one, so nothing moves', () => {
+    const p = newProject('x')
+    const pair = { kind: 'pair', id: 'q', template: 'panorama', screenshot: null, headline: 'L', subheadline: '', headlineRight: 'R', subheadlineRight: '', device: { scale: 1, offsetY: 0 }, textNudge: { offsetY: 22 }, overrides: {} }
+    const out = migrateProject({ ...p, items: [pair] })
+    expect((out.items[0] as { textNudgeRight: { offsetY: number } }).textNudgeRight).toEqual({ offsetY: 22 })
+    // Pairs that already have one keep it.
+    const kept = migrateProject({ ...p, items: [{ ...pair, textNudgeRight: { offsetY: -5 } }] })
+    expect((kept.items[0] as { textNudgeRight: { offsetY: number } }).textNudgeRight).toEqual({ offsetY: -5 })
+  })
+  it('tryMigrateProject returns null instead of throwing', () => {
+    expect(tryMigrateProject({ ...newProject('x'), schemaVersion: 99 })).toBeNull()
+    expect(tryMigrateProject(null)).toBeNull()
+    expect(tryMigrateProject(newProject('ok'))?.name).toBe('ok')
   })
 })

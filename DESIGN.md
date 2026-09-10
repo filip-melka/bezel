@@ -159,17 +159,24 @@ Projects screen, empty. Three lines of explanation, a "New project" button, and 
 
 ### 5.2 Add a slide
 
-"+ Add" opens the sheet (2d). Five tiles showing each template as pure geometry — outlined device, filled text bars — not as a fake screenshot, so the tile communicates _layout_ and nothing else. Every tile states its slot cost. When fewer than 2 slots remain, pair tiles drop to 45% and an inline card explains why in words ("A panorama uses two of your ten. Delete a slide to make room.") — never a tooltip, because the reason is the point.
+"+ Add" opens the sheet (2d). One tile per template, drawn as pure geometry — outlined device, filled text bars — not as a fake screenshot, so the tile communicates _layout_ and nothing else. Every tile states its slot cost. When fewer than 2 slots remain, pair tiles drop to 45% and an inline card explains why in words ("A panorama uses two of your ten. Delete a slide to make room.") — never a tooltip, because the reason is the point.
 
 ### 5.3 Edit
 
+On pair templates each text section splits into two groups, Left slide and Right slide, separated by a divider. Each group has its own text field and its own Style row. The left row reads "Set theme" until customised; the right row reads "Same as left" and follows the left side until customised, at which point it starts from the left side's current style. Leaving a field empty leaves that side without text. The Text position section likewise shows two sliders for a pair, Left slide and Right slide, each moving only its own side. In the style editor, Weight and Align sit on their own full-width rows so their labels never truncate.
+
+
 Select in the filmstrip → the inspector retitles to that slide's number → edit. Preview updates on the 40 ms debounce; thumbnails update on commit. Sliders track live at preview scale and re-render full-res on release (`SPEC.md` §7.2).
 
-### 5.4 App Store preview
+### 5.4 Live Activity crop
+
+On the Lock and Island templates the inspector gains a Live Activity section: a status row (Detected / Not found / Needs a screenshot) with Detect and Adjust… buttons, a Screen control (Screenshot, or a drawn Placeholder lock or home screen that uses only the widget from the screenshot), a Colour row shown only for Placeholder (swatch and hex field; a custom colour gets the override dot and Reset), then Scale and Offset sliders. Adjust… opens a sheet showing the screenshot with the crop as a tinted box: drag to move, corner handles to resize, numeric fields for exact values, Detect again to re-run the heuristic. Done applies; Cancel or Escape discards.
+
+### 5.5 App Store preview
 
 "Preview" in the top bar opens a full-screen mock of the product page: every exported slot side by side at App Store corner radius with the store's gap, so a panorama can be judged as shoppers will see it. Done or Escape returns to the editor. Nothing is editable there.
 
-### 5.5 Export
+### 5.6 Export
 
 Export ▾ offers "Download this slide" and "Download all as ZIP". If any item lacks a screenshot, a confirm sheet lists the affected numbers before rendering starts. Progress is a determinate bar with "Rendering 4 of 10"; on completion the button shows a checkmark for 1.2 s rather than firing a toast.
 

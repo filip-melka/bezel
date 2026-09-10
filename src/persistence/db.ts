@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import { tryMigrateProject } from '../model/migrate'
 import type { Project } from '../model/types'
 
 export type AssetRecord = { blob: Blob; projectId: string; width: number; height: number }
@@ -46,8 +47,18 @@ export function getDb(): Promise<IDBPDatabase<BezelDB> | null> {
 
 export async function listProjects(): Promise<Project[]> {
   const db = await getDb()
-  const all = db ? await db.getAll('projects') : [...memory.projects.values()]
+  const raw = db ? await db.getAll('projects') : [...memory.projects.values()]
+  // Listings show projects in the current schema; unreadable or newer ones are skipped.
+  const all = raw.map(tryMigrateProject).filter((p): p is Project => p !== null)
   return all.sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+// Every stored project id, without migrating or validating. Used by the orphan
+// sweep so a project this build cannot read never has its assets deleted.
+export async function listProjectIds(): Promise<string[]> {
+  const db = await getDb()
+  if (!db) return [...memory.projects.keys()]
+  return (await db.getAllKeys('projects')).map(String)
 }
 
 export async function readProject(id: string): Promise<Project | undefined> {

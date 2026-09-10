@@ -14,6 +14,7 @@ import { Filmstrip } from './Filmstrip'
 import { Inspector } from './Inspector'
 import { Stage } from './Stage'
 import { StorePreview } from './StorePreview'
+import { WidgetAdjustSheet } from './WidgetAdjustSheet'
 import { TopBar } from './TopBar'
 import { startExportAll } from './exportFlow'
 import s from './editor.module.css'
@@ -120,6 +121,7 @@ export function Editor({ id }: { id: string }) {
       <AddSheet />
       <ExportConfirmSheet />
       <StorePreview />
+      <WidgetAdjustSheet />
     </div>
   )
 }

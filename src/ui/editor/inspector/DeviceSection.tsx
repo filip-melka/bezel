@@ -63,19 +63,29 @@ export function DeviceSection({ item }: { item: SlideItem }) {
             <span className="t-section">Text position</span>
           </div>
           <InsetList>
-            <Slider
-              label="Offset"
-              value={item.textNudge.offsetY}
-              min={limits.textOffsetY[0]}
-              max={limits.textOffsetY[1]}
-              step={1}
-              defaultValue={0}
-              format={pxFmt}
-              parse={parseNum}
-              bipolar
-              onChange={(v) => setTextNudge(item.id, v)}
-              {...dragHandlers}
-            />
+            {/* A pair positions each slide's text on its own. */}
+            {(item.kind === 'pair'
+              ? ([
+                  ['Left slide', 'left', item.textNudge.offsetY],
+                  ['Right slide', 'right', item.textNudgeRight.offsetY],
+                ] as const)
+              : ([['Offset', 'left', item.textNudge.offsetY]] as const)
+            ).map(([label, side, value]) => (
+              <Slider
+                key={side}
+                label={label}
+                value={value}
+                min={limits.textOffsetY[0]}
+                max={limits.textOffsetY[1]}
+                step={1}
+                defaultValue={0}
+                format={pxFmt}
+                parse={parseNum}
+                bipolar
+                onChange={(v) => setTextNudge(item.id, v, side)}
+                {...dragHandlers}
+              />
+            ))}
           </InsetList>
         </section>
       ) : null}

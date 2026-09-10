@@ -1,7 +1,7 @@
 import { resolveTheme } from '../model/defaults'
 import type { SlideItem, Theme } from '../model/types'
 import { canvasSizeFor, templateFor } from '../templates/registry'
-import type { DeviceBox, TextBlock } from '../templates/types'
+import type { DeviceBox, TextBlock, WidgetLayout } from '../templates/types'
 import { fillBackground } from './background'
 import {
   FRAME_H,
@@ -15,6 +15,7 @@ import {
   traceScreenPath,
 } from './bezel'
 import { FONT_FAMILY, fontString } from './fonts'
+import { drawHomePlaceholder, drawLockPlaceholder } from './placeholders'
 import { fitText } from './text'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
@@ -76,12 +77,14 @@ export function renderItem(
   })
 
   if (layout.device) {
-    drawDevice(ctx, layout.device, screenshot, resolvedTheme, scale, opts.preview === true)
+    drawDevice(ctx, layout.device, screenshot, resolvedTheme, scale, opts.preview === true, layout.screenDim ?? 0, layout.screenPlaceholder ?? null, layout.screenPlaceholderColor ?? null)
     if (!screenshot) report.missingScreenshot = true
     else if (aspectMismatch(screenshot.width, screenshot.height)) report.screenshotAspectMismatch = true
   }
 
-  for (const block of [layout.headline, layout.subheadline]) {
+  if (layout.widget && screenshot) drawWidget(ctx, layout.widget, screenshot, scale)
+
+  for (const block of [layout.headline, layout.subheadline, layout.headlineRight, layout.subheadlineRight]) {
     if (!block) continue
     drawTextBlock(ctx, block)
     if (block.shrunk) report.textShrunk = true
@@ -98,6 +101,9 @@ function drawDevice(
   theme: Theme,
   scale: number,
   preview: boolean,
+  screenDim: number,
+  placeholder: 'lock' | 'home' | null,
+  placeholderColor: string | null,
 ): void {
   ctx.save()
   const cx = box.x + box.w / 2
@@ -126,7 +132,10 @@ function drawDevice(
   ctx.save()
   traceScreenPath(ctx)
   ctx.clip()
-  if (screenshot) {
+  if (placeholder) {
+    if (placeholder === 'lock') drawLockPlaceholder(ctx, placeholderColor)
+    else drawHomePlaceholder(ctx, placeholderColor)
+  } else if (screenshot) {
     // Alpha composites over black (SPEC §11).
     ctx.fillStyle = '#000'
     ctx.fillRect(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H)
@@ -140,6 +149,10 @@ function drawDevice(
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(screenshot, dx, dy, dw, dh)
+    if (screenDim > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${screenDim})`
+      ctx.fillRect(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H)
+    }
   } else {
     ctx.fillStyle = preview ? '#1f1f1f' : '#000'
     ctx.fillRect(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H)
@@ -176,5 +189,38 @@ function drawTextBlock(ctx: Ctx2D, block: TextBlock): void {
   block.lines.forEach((line, i) => {
     ctx.fillText(line, x, block.y + i * block.lineHeight + block.lineHeight / 2)
   })
+  ctx.restore()
+}
+
+// Draws a Live Activity cut-out (a rounded crop of the screenshot) with a
+// drop shadow, plus an optional dashed ghost outline at its original spot.
+function drawWidget(ctx: Ctx2D, widget: WidgetLayout, screenshot: ScreenshotImage, scale: number): void {
+  const { box, radius, crop, ghost } = widget
+  if (ghost) {
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'
+    ctx.lineWidth = 4
+    ctx.setLineDash([20, 14])
+    ctx.beginPath()
+    ctx.roundRect(ghost.x, ghost.y, ghost.w, ghost.h, ghost.radius)
+    ctx.stroke()
+    ctx.restore()
+  }
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'
+  ctx.shadowBlur = 50 * scale
+  ctx.shadowOffsetY = 24 * scale
+  ctx.fillStyle = '#000'
+  ctx.beginPath()
+  ctx.roundRect(box.x, box.y, box.w, box.h, radius)
+  ctx.fill()
+  ctx.restore()
+  ctx.save()
+  ctx.beginPath()
+  ctx.roundRect(box.x, box.y, box.w, box.h, radius)
+  ctx.clip()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(screenshot, crop.x, crop.y, crop.w, crop.h, box.x, box.y, box.w, box.h)
   ctx.restore()
 }

@@ -47,8 +47,16 @@ export function clampItemToTemplate<T extends SlideItem>(item: T): T {
   const scale = clampNum(item.device.scale, limits.scale)
   const offsetY = clampNum(item.device.offsetY, limits.deviceOffsetY)
   const textOffsetY = clampNum(item.textNudge.offsetY, limits.textOffsetY)
-  if (scale === item.device.scale && offsetY === item.device.offsetY && textOffsetY === item.textNudge.offsetY) {
+  const rightBefore = item.kind === 'pair' ? item.textNudgeRight.offsetY : 0
+  const rightOffsetY = item.kind === 'pair' ? clampNum(rightBefore, limits.textOffsetY) : 0
+  if (
+    scale === item.device.scale &&
+    offsetY === item.device.offsetY &&
+    textOffsetY === item.textNudge.offsetY &&
+    rightOffsetY === rightBefore
+  ) {
     return item
   }
-  return { ...item, device: { scale, offsetY }, textNudge: { offsetY: textOffsetY } }
+  const next = { ...item, device: { scale, offsetY }, textNudge: { offsetY: textOffsetY } }
+  return item.kind === 'pair' ? { ...next, textNudgeRight: { offsetY: rightOffsetY } } : next
 }

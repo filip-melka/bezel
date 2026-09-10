@@ -1,9 +1,10 @@
 import type { TextAlign, TextStyle, TextWeight } from '../../../model/types'
 import { dragHandlers } from '../../../store/history'
 import { ColorField } from '../../controls/ColorField'
-import { Row } from '../../controls/InsetList'
+import { Row, Stack } from '../../controls/InsetList'
 import { Segmented } from '../../controls/Segmented'
 import { Slider } from '../../controls/Slider'
+import e from '../editor.module.css'
 
 type Props = { value: TextStyle; onChange: (patch: Partial<TextStyle>) => void }
 
@@ -28,7 +29,9 @@ export function TextStyleEditor({ value, onChange }: Props) {
         onChange={(size) => onChange({ size })}
         {...dragHandlers}
       />
-      <Row label="Weight">
+      {/* Weight and Align get the full card width so their labels never truncate. */}
+      <Stack>
+        <span className={e.stackLabel}>Weight</span>
         <Segmented<`${TextWeight}`>
           ariaLabel="Weight"
           value={`${value.weight}`}
@@ -40,11 +43,12 @@ export function TextStyleEditor({ value, onChange }: Props) {
             { value: '700', label: 'Bold' },
           ]}
         />
-      </Row>
+      </Stack>
       <Row label="Colour">
         <ColorField ariaLabel="Text colour" value={value.color} onChange={(color) => onChange({ color })} {...dragHandlers} />
       </Row>
-      <Row label="Align">
+      <Stack>
+        <span className={e.stackLabel}>Align</span>
         <Segmented<TextAlign>
           ariaLabel="Alignment"
           value={value.align}
@@ -55,7 +59,7 @@ export function TextStyleEditor({ value, onChange }: Props) {
             { value: 'right', label: 'Right' },
           ]}
         />
-      </Row>
+      </Stack>
     </>
   )
 }

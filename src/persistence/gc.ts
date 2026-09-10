@@ -1,10 +1,9 @@
-import { deleteAsset, listAssetOwners, listProjects } from './db'
+import { deleteAsset, listAssetOwners, listProjectIds } from './db'
 
 // Deletes assets whose project no longer exists (SPEC §10.2). Runs once at startup.
 export async function sweepOrphanAssets(): Promise<number> {
   try {
-    const projects = await listProjects()
-    const live = new Set(projects.map((p) => p.id))
+    const live = new Set(await listProjectIds())
     const owners = await listAssetOwners()
     let removed = 0
     for (const { id, projectId } of owners) {

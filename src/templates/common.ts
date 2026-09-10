@@ -1,5 +1,6 @@
 import { FRAME_ASPECT } from '../render/bezel'
 import { LINE_HEIGHT } from '../render/fonts'
+import type { TextStyle } from '../model/types'
 import type { DeviceBox, LayoutInput, TemplateLimits, TextBlock } from './types'
 
 export function clampNum(v: number, [lo, hi]: [number, number]): number {
@@ -15,6 +16,12 @@ export type TextStackOptions = {
   subMaxLines: number
   gap: number
   limits: TemplateLimits
+  // Text to lay out; defaults to the item's own headline and subheadline.
+  texts?: { headline: string; subheadline: string }
+  // Styles to use; default to the resolved theme's headline and subheadline.
+  styles?: { headline: TextStyle; subheadline: TextStyle }
+  // Vertical offset to apply; defaults to the item's own text nudge.
+  nudgeY?: number
 }
 
 export type TextStack = {
@@ -30,26 +37,60 @@ export type TextStack = {
 // move up into the headline position (SPEC §11).
 export function layoutTextStack(input: LayoutInput, o: TextStackOptions): TextStack {
   const { item, resolvedTheme, measureText } = input
-  const y0 = o.y + clampNum(item.textNudge.offsetY, o.limits.textOffsetY)
-  const head = item.headline.trim()
-  const sub = item.subheadline.trim()
+  const y0 = o.y + clampNum(o.nudgeY ?? item.textNudge.offsetY, o.limits.textOffsetY)
+  const head = (o.texts?.headline ?? item.headline).trim()
+  const sub = (o.texts?.subheadline ?? item.subheadline).trim()
   let cursor = y0
   let headline: TextBlock | null = null
   let subheadline: TextBlock | null = null
 
   if (head) {
-    const fit = measureText(head, resolvedTheme.headline, o.w, o.headlineMaxLines)
+    const fit = measureText(head, o.styles?.headline ?? resolvedTheme.headline, o.w, o.headlineMaxLines)
     headline = { x: o.x, y: cursor, w: o.w, lines: fit.lines, style: fit.style, lineHeight: fit.lineHeight, shrunk: fit.shrunk }
     cursor += fit.height
   }
   if (sub) {
     if (headline) cursor += o.gap
-    const fit = measureText(sub, resolvedTheme.subheadline, o.w, o.subMaxLines)
+    const fit = measureText(sub, o.styles?.subheadline ?? resolvedTheme.subheadline, o.w, o.subMaxLines)
     subheadline = { x: o.x, y: cursor, w: o.w, lines: fit.lines, style: fit.style, lineHeight: fit.lineHeight, shrunk: fit.shrunk }
     cursor += fit.height
   }
-  if (!headline && !subheadline) cursor = y0 + resolvedTheme.headline.size * LINE_HEIGHT
+  if (!headline && !subheadline) cursor = y0 + (o.styles?.headline ?? resolvedTheme.headline).size * LINE_HEIGHT
   return { headline, subheadline, bottom: cursor }
+}
+
+export type PairTextOptions = {
+  leftX: number
+  rightX: number
+  y: number
+  w: number
+  headlineMaxLines: number
+  subMaxLines: number
+  gap: number
+  limits: TemplateLimits
+}
+
+// Lays out a pair's two text slots, one per slide, each with its own vertical
+// offset. The right slot uses its own style override when set, otherwise the
+// left style.
+// `bottom` is the lower of the two, for placing the device below.
+export function layoutPairText(input: LayoutInput, o: PairTextOptions): { left: TextStack; right: TextStack; bottom: number } {
+  const { item } = input
+  const base = { y: o.y, w: o.w, headlineMaxLines: o.headlineMaxLines, subMaxLines: o.subMaxLines, gap: o.gap, limits: o.limits }
+  const left = layoutTextStack(input, { ...base, x: o.leftX, texts: { headline: item.headline, subheadline: item.subheadline } })
+  const { resolvedTheme } = input
+  const rightOverrides = item.overrides
+  const right = layoutTextStack(input, {
+    ...base,
+    x: o.rightX,
+    nudgeY: item.kind === 'pair' ? item.textNudgeRight.offsetY : 0,
+    styles: {
+      headline: { ...resolvedTheme.headline, ...rightOverrides.headlineRight },
+      subheadline: { ...resolvedTheme.subheadline, ...rightOverrides.subheadlineRight },
+    },
+    texts: item.kind === 'pair' ? { headline: item.headlineRight ?? '', subheadline: item.subheadlineRight ?? '' } : { headline: '', subheadline: '' },
+  })
+  return { left, right, bottom: Math.max(left.bottom, right.bottom) }
 }
 
 export function deviceFromWidth(w: number, centerX: number, top: number, rotation = 0): DeviceBox {

@@ -13,11 +13,14 @@ type Props<T extends string> = {
   options: SegmentedOption<T>[]
   ariaLabel: string
   className?: string
+  // Lay the options out in a grid with this many columns instead of one row.
+  columns?: number
 }
 
-export function Segmented<T extends string>({ value, onChange, options, ariaLabel, className }: Props<T>) {
+export function Segmented<T extends string>({ value, onChange, options, ariaLabel, className, columns }: Props<T>) {
+  const style = columns ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)` } : undefined
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className={[s.seg, className ?? ''].join(' ')}>
+    <div role="radiogroup" aria-label={ariaLabel} className={[s.seg, className ?? ''].join(' ')} style={style}>
       {options.map((o) => (
         <button
           key={o.value}

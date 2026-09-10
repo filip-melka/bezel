@@ -14,6 +14,8 @@ import { importFileToItem } from '../importFiles'
 import { BackgroundEditor } from './BackgroundEditor'
 import { DeviceSection } from './DeviceSection'
 import { TextSection } from './TextSection'
+import { WidgetSection } from './WidgetSection'
+import { detectWidgetForItem } from '../../../widgets/run'
 import s from '../editor.module.css'
 
 export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
@@ -39,7 +41,12 @@ export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
         <Segmented<TemplateId>
           ariaLabel="Template"
           value={item.template}
-          onChange={(t) => setTemplate(item.id, t)}
+          columns={ids.length > 4 ? 3 : undefined}
+          onChange={(t) => {
+            setTemplate(item.id, t)
+            const kind = TEMPLATES[t].widgetKind
+            if (kind && item.screenshot && item.widget?.crop?.kind !== kind) void detectWidgetForItem(item.id)
+          }}
           options={ids.map((id) => ({ value: id, label: SHORT_NAMES[id], title: TEMPLATES[id].name }))}
         />
       </section>
@@ -95,6 +102,8 @@ export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
       ) : null}
 
       <DeviceSection item={item} />
+
+      <WidgetSection item={item} />
 
       <section className={s.section} aria-label="Background override">
         <div className={s.sectionHeader}>

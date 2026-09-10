@@ -81,7 +81,7 @@ type ProjectMeta = {
   name: string
   createdAt: number   // epoch ms
   updatedAt: number
-  schemaVersion: 1
+  schemaVersion: 2
 }
 
 type Project = ProjectMeta & {
@@ -129,14 +129,22 @@ type Slide = {
 type Pair = {
   kind: 'pair'
   id: string
-  template: PairTemplateId
+  template: PairTemplateId  // 'panorama' | 'panoTilted' | 'panoTiltedRight'
   screenshot: ScreenshotRef | null
-  headline: string
+  headline: string          // left slide; either side may be empty
   subheadline: string
+  headlineRight: string     // right slide
+  subheadlineRight: string
   device: { scale: number; offsetY: number }
-  textNudge: { offsetY: number }
-  overrides: Partial<Pick<Theme, 'background' | 'headline' | 'subheadline'>>
+  textNudge: { offsetY: number }       // left slide
+  textNudgeRight: { offsetY: number }  // right slide
+  overrides: Partial<Pick<Theme, 'background' | 'headline' | 'subheadline'>> & { headlineRight?: TextStyle; subheadlineRight?: TextStyle }
 }
+
+type WidgetKind = 'lockActivity' | 'island'
+type WidgetCrop = { kind: WidgetKind; x: number; y: number; w: number; h: number; radius: number }  // stored-screenshot px
+type WidgetState = { crop: WidgetCrop | null; screen?: 'screenshot' | 'placeholder'; placeholderColor?: string | null; scale: number | null; offsetY: number; notFound: boolean }
+// Items carry an optional `widget?: WidgetState`; absent on projects saved before Live Activity templates.
 
 type ScreenshotRef = {
   assetId: string
@@ -208,6 +216,11 @@ type TemplateDef = {
 - Inverse of textTop: the text block is anchored so its bottom sits 200 px above the canvas bottom; the device (frame width 1080 × scale) hangs from the top edge with its bottom edge 140 px above the text. Top of the device is cropped.
 - Limits: scale 0.85–1.15, deviceOffsetY −300…+200, textOffsetY −120…+80.
 
+**lockActivity — "Lock activity"** and **island — "Island"** (Live Activity templates)
+- Both share one layout: headline at top as in textTop, device frame width 1000 × scale, and the Live Activity cut-out drawn again on top with a drop shadow, enlarged around its own centre (default 1.35×, limits 1–2, capped so it keeps 60 px side margins) so it overshoots the bezel. The device is placed 100 px below the text, dropped further only if the enlarged widget would otherwise reach the text. The cut-out is a rounded crop of the same screenshot (see §7.6), so no second asset is stored.
+- Screen behind the widget, per slide (`widget.screen`): `screenshot` shows the screenshot dimmed 35% black; `placeholder` draws a stand-in lock screen (lockActivity) or home screen (island) and anchors the cut-out at the standard iOS position on the 1320×2868 screen: the card full width with 14 pt margins and its bottom at 85.3% of the height; the island 94.8% wide, 1.2% from the top. The home-screen placeholder is deliberately recessive: a blue-to-plum wallpaper with the icon grid, page dots and dock blurred (about 20 px, drawn as offset shadows so every browser renders it the same), and a sharp status bar with the time, signal, Wi-Fi and battery. Each placeholder takes an optional base colour per slide (`widget.placeholderColor`); without one the designed palette is used. A custom colour drives a three-stop gradient with small hue and lightness shifts (lighter and slightly cooler at the top, slightly warmer below), and when the colour is light (relative luminance above 0.4) the icons, status bar and lock-screen text switch to dark ink.
+- Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −80…+120, widgetOffsetY −400…+400.
+
 **deviceOnly — "Device centered"**
 - No text slots. Headline/subheadline fields are hidden in the inspector.
 - Device fully visible, frame height = 2868 − 2 × 180 px padding at scale 1, centered.
@@ -223,17 +236,16 @@ type TemplateDef = {
 
 Both render on a 2640 × 2868 canvas.
 
-**panoLeftText — "Text left, device across seam"**
-- Text occupies the left slide: headline slot x=120, y=260, width 1080, max 4 lines; subheadline below, max 3 lines.
-- Device frame width = 1500 × scale, centered horizontally on x = 1320 (the seam), bottom cropped by the canvas edge. Top edge default y = 720.
+Every pair has a text slot on each slide: `headline` / `subheadline` for the left, `headlineRight` / `subheadlineRight` for the right. To put text on one side only, leave the other side empty. Each side has its own text styles. The left side overrides the set theme (`overrides.headline` / `subheadline`); the right side overrides the left (`overrides.headlineRight` / `subheadlineRight`), so until it is customised the right side follows the left. Customising the right side starts from the left side's current style, so for example the left can be left-aligned and the right right-aligned. Each side also has its own vertical text offset (`textNudge` for the left, `textNudgeRight` for the right), clamped to the template's textOffsetY limits. A pair saved before the offsets were split gets a right offset equal to its old shared one when loaded, so nothing moves.
+
+**panorama — "Panorama"**
+- Text slots: left x=120, right x=1440, y=260, width 1080, headline max 4 lines, subheadline max 3.
+- Device frame width = 1500 × scale, centred on x = 1320 (the seam), bottom cropped by the canvas edge. Top edge at y = 720, or 100 px below the lower of the two text blocks if that is further down, plus deviceOffsetY.
 - Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −100…+200.
 
-**panoRightText**
-- Mirror image: text on the right slide, same device placement.
-
 **panoTilted — "Tilted left"** and **panoTiltedRight — "Tilted right"**
-- Device frame width 1400 × scale, rotated −12° (text left) or +12° (text right) about its centre on the seam, with its rotated bounds overhanging the canvas bottom by 1000 px so the low corner sits under the text side.
-- Text slot on the named slide: x=120 (left) or 1520 (right), y=260, width 1000, headline max 3 lines, subheadline max 2.
+- Device frame width 1400 × scale, rotated −12° (top leaning left) or +12° (top leaning right) about its centre on the seam, with its rotated bounds overhanging the canvas bottom by 1000 px.
+- Text slots are mirror images, 120 px from the outer edge and 200 px from the seam: left x=120, right x=1520, y=260, width 1000, headline max 3 lines, subheadline max 2.
 - Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −100…+200.
 
 The background gradient is evaluated over the full 2640-wide canvas, so it is continuous across the seam. Text never crosses the seam.
@@ -279,6 +291,15 @@ For the tilted template, steps 2–5 happen inside a `save / translate / rotate 
 ### 7.4 Auto-shrink
 
 If wrapped text exceeds the slot's max line count, reduce the font size by 4 px and re-wrap, repeating until it fits or until size reaches 55% of the requested size. If it still does not fit at the floor, render at the floor, truncate to the max line count, and set `textShrunk` and mark the last line with an ellipsis. The UI shows "Text was shrunk to fit" beneath the text field and a small badge on the thumbnail.
+
+### 7.6 Live Activity detection
+
+Widget templates locate the Live Activity in the screenshot with pure pixel heuristics, run on import, on switching to a widget template, or on demand:
+
+- **Expanded Dynamic Island:** flood-fill near-black pixels (all channels < 40) from the pill's expected centre near the top; the bounding box is the crop. Rejected unless it is at least half the width, 4–40% of the height, within the top 10%, and at least 60% filled. The corner radius is measured from the fill: the first row where the black region reaches the box's left edge is one radius below the top.
+- **Lock-screen card:** iOS keeps the card full width with fixed side margins. A column just inside the margin is compared with one in the margin: rows where the inside column is flat and differs from the wallpaper are card rows. The longest plausible run (5–25% of the height, in the lower 35–97%) wins; edges are then refined outward in several columns clear of the rounded corners.
+
+The result is stored on the item as `widget.crop` in stored-screenshot pixels with a corner radius. A miss sets `widget.notFound` and shows a toast; the inspector offers "Detect" and "Adjust…", the latter opening a sheet with a draggable, resizable crop box, numeric fields, and a "Detect again" button.
 
 ### 7.5 Screenshot fitting
 
@@ -417,7 +438,11 @@ Database `bezel`, version 1.
 
 ### 10.5 Schema migration
 
-`schemaVersion` is checked on load. v1 has no migrations, but the loader is structured as a chain of `migrate_N_to_N+1` steps so future versions can add them. An unknown higher version shows "This project was made with a newer version of Bezel."
+`schemaVersion` is checked on load and older projects are upgraded through a chain of `migrate_N_to_N+1` steps. The current version is 2. An unknown higher version shows "This project was made with a newer version of Bezel."
+
+- **v1 → v2:** pairs gain a text slot on each slide. The v1 templates "Text left" (`panoLeftText`) and "Text right" (`panoRightText`) merge into `panorama`. Text from "Text right" and "Tilted right" moves into the right-hand fields, so every existing pair renders as before.
+
+Project listings migrate each record for display and skip ones they cannot read. The orphan-asset sweep works from raw stored project ids, so a project this build cannot read never has its screenshots deleted.
 
 ---
 
