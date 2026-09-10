@@ -4,54 +4,90 @@ import { ALL_TEMPLATE_IDS, TEMPLATES } from '../../templates/registry'
 import { addItem } from '../../store/actions'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { Button } from '../controls/Button'
 import { Sheet } from '../controls/Sheet'
 import s from './editor.module.css'
 
+const STROKE = 'var(--label-3)'
+const BAR = 'var(--label-2)'
+
+const Bars = ({ x, y, w = 96 }: { x: number; y: number; w?: number }) => (
+  <>
+    <rect x={x} y={y} width={w} height="10" rx="3" fill={BAR} />
+    <rect x={x} y={y + 18} width={w * 0.7} height="7" rx="3" fill={BAR} opacity="0.6" />
+  </>
+)
+const Device = (p: { x: number; y: number; w: number; h: number }) => (
+  <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="16" fill="none" stroke={STROKE} strokeWidth="4" />
+)
+const Seam = () => <line x1="132" y1="0" x2="132" y2="287" stroke={STROKE} strokeDasharray="4 4" />
+
 // Pure-geometry tiles: outlined device, filled text bars (DESIGN §5.2).
 function TileArt({ id }: { id: TemplateId }) {
-  const stroke = 'var(--label-3)'
-  const bar = 'var(--label-2)'
   switch (id) {
     case 'textTop':
       return (
         <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
-          <rect x="18" y="26" width="96" height="10" rx="3" fill={bar} />
-          <rect x="34" y="44" width="64" height="7" rx="3" fill={bar} opacity="0.6" />
-          <rect x="22" y="80" width="88" height="240" rx="16" fill="none" stroke={stroke} strokeWidth="4" />
+          <Bars x={18} y={26} />
+          <Device x={22} y={80} w={88} h={240} />
+        </svg>
+      )
+    case 'textBottom':
+      return (
+        <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
+          <Device x={22} y={-40} w={88} h={240} />
+          <Bars x={18} y={228} />
         </svg>
       )
     case 'deviceOnly':
       return (
         <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
-          <rect x="24" y="22" width="84" height="243" rx="16" fill="none" stroke={stroke} strokeWidth="4" />
+          <Device x={24} y={22} w={84} h={243} />
         </svg>
       )
     case 'tilted':
       return (
         <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
-          <rect x="14" y="26" width="72" height="10" rx="3" fill={bar} />
-          <rect x="14" y="44" width="52" height="7" rx="3" fill={bar} opacity="0.6" />
+          <Bars x={14} y={26} w={72} />
           <g transform="rotate(-12 110 240)">
-            <rect x="52" y="100" width="116" height="280" rx="16" fill="none" stroke={stroke} strokeWidth="4" />
+            <Device x={52} y={100} w={116} h={280} />
           </g>
         </svg>
       )
     case 'panoLeftText':
       return (
         <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
-          <line x1="132" y1="0" x2="132" y2="287" stroke={stroke} strokeDasharray="4 4" />
-          <rect x="18" y="30" width="96" height="10" rx="3" fill={bar} />
-          <rect x="18" y="48" width="72" height="7" rx="3" fill={bar} opacity="0.6" />
-          <rect x="72" y="80" width="120" height="260" rx="18" fill="none" stroke={stroke} strokeWidth="4" />
+          <Seam />
+          <Bars x={18} y={30} />
+          <Device x={72} y={80} w={120} h={260} />
         </svg>
       )
     case 'panoRightText':
       return (
         <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
-          <line x1="132" y1="0" x2="132" y2="287" stroke={stroke} strokeDasharray="4 4" />
-          <rect x="150" y="30" width="96" height="10" rx="3" fill={bar} />
-          <rect x="150" y="48" width="72" height="7" rx="3" fill={bar} opacity="0.6" />
-          <rect x="72" y="80" width="120" height="260" rx="18" fill="none" stroke={stroke} strokeWidth="4" />
+          <Seam />
+          <Bars x={150} y={30} />
+          <Device x={72} y={80} w={120} h={260} />
+        </svg>
+      )
+    case 'panoTilted':
+      return (
+        <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
+          <Seam />
+          <Bars x={18} y={30} />
+          <g transform="rotate(-12 132 260)">
+            <Device x={66} y={110} w={132} h={300} />
+          </g>
+        </svg>
+      )
+    case 'panoTiltedRight':
+      return (
+        <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
+          <Seam />
+          <Bars x={150} y={30} />
+          <g transform="rotate(12 132 260)">
+            <Device x={66} y={110} w={132} h={300} />
+          </g>
         </svg>
       )
   }
@@ -64,7 +100,7 @@ export function AddSheet() {
   const free = slotsFree(items)
 
   return (
-    <Sheet open={open} onClose={close} title="Add a slide">
+    <Sheet open={open} onClose={close} title="Add a slide" width={760}>
       <div className={s.tiles}>
         {ALL_TEMPLATE_IDS.map((id) => {
           const def = TEMPLATES[id]
@@ -91,11 +127,12 @@ export function AddSheet() {
       </div>
       {free < 2 ? (
         <div className={s.explain} id="add-explain" role="status">
-          {free === 0
-            ? 'The set is full. Delete a slide to make room.'
-            : 'A panorama uses two of your ten. Delete a slide to make room.'}
+          {free === 0 ? 'The set is full. Delete a slide to make room.' : 'A panorama uses two of your ten. Delete a slide to make room.'}
         </div>
       ) : null}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+        <Button onClick={close}>Cancel</Button>
+      </div>
     </Sheet>
   )
 }

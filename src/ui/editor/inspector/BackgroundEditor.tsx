@@ -1,6 +1,4 @@
-import { PRESET_GRADIENTS } from '../../../model/defaults'
 import type { Background, GradientStop } from '../../../model/types'
-import { backgroundToCss } from '../../../render/background'
 import { dragHandlers } from '../../../store/history'
 import { Button } from '../../controls/Button'
 import { ColorField } from '../../controls/ColorField'
@@ -129,26 +127,6 @@ export function BackgroundEditor({ value, onChange }: Props) {
           ) : null}
         </>
       )}
-
-      <div>
-        <div className="t-caption" style={{ marginBottom: 6 }}>
-          Presets
-        </div>
-        <div className={s.swatches} role="group" aria-label="Preset gradients">
-          {PRESET_GRADIENTS.map((p) => (
-            <button
-              key={p.name}
-              type="button"
-              className={s.swatchBtn}
-              style={{ background: backgroundToCss(p.background) }}
-              aria-label={p.name}
-              title={p.name}
-              aria-pressed={JSON.stringify(p.background) === JSON.stringify(value)}
-              onClick={() => onChange(structuredClone(p.background))}
-            />
-          ))}
-        </div>
-      </div>
     </>
   )
 }

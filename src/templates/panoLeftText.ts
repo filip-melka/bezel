@@ -10,7 +10,7 @@ export const PANO_LIMITS = {
 // SPEC §6.2: text on the left slide, device straddling the seam at x = 1320.
 export const panoLeftText: TemplateDef = {
   id: 'panoLeftText',
-  name: 'Panorama, text left',
+  name: 'Text left',
   description: 'Two slides. Text on the left, device across the seam.',
   slots: 2,
   hasText: true,

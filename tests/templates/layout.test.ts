@@ -111,3 +111,60 @@ describe('rotatedBounds', () => {
     expect(r.h).toBeCloseTo(10)
   })
 })
+
+describe('textBottom', () => {
+  it('anchors the text 200 px above the bottom and hangs the device above it', () => {
+    const s = newSlide('textBottom')
+    s.headline = 'Hello'
+    const out = TEMPLATES.textBottom.layout(layoutInput(s))
+    const lineH = 96 * LINE_HEIGHT
+    expect(out.headline?.y).toBeCloseTo(2868 - 200 - lineH)
+    const d = out.device!
+    expect(d.y).toBe(-300)
+    expect(d.y + d.h).toBeLessThanOrEqual(out.headline!.y - 140)
+    expect(d.x + d.w / 2).toBeCloseTo(660)
+  })
+  it('lifts the device when a tall text block would collide with it', () => {
+    const s = newSlide('textBottom')
+    s.headline = Array.from({ length: 12 }, () => 'word').join(' ')
+    s.subheadline = Array.from({ length: 12 }, () => 'word').join(' ')
+    s.device.scale = 1.15
+    const out = TEMPLATES.textBottom.layout(layoutInput(s))
+    const d = out.device!
+    const textTop = out.headline!.y
+    expect(d.y).toBeLessThan(-300)
+    expect(d.y + d.h).toBeCloseTo(textTop - 140)
+  })
+  it('stacks headline above subheadline in reading order', () => {
+    const s = newSlide('textBottom')
+    s.headline = 'A'
+    s.subheadline = 'B'
+    const out = TEMPLATES.textBottom.layout(layoutInput(s))
+    expect(out.headline!.y).toBeLessThan(out.subheadline!.y)
+    expect(out.subheadline!.y + out.subheadline!.lineHeight).toBeCloseTo(2868 - 200)
+  })
+})
+
+describe('tilted panoramas', () => {
+  it('rotate opposite ways and centre on the seam', () => {
+    const l = TEMPLATES.panoTilted.layout(layoutInput(newPair('panoTilted')))
+    const r = TEMPLATES.panoTiltedRight.layout(layoutInput(newPair('panoTiltedRight')))
+    expect(l.device?.rotation).toBe(-12)
+    expect(r.device?.rotation).toBe(12)
+    for (const d of [l.device!, r.device!]) {
+      expect(d.x + d.w / 2).toBeCloseTo(1320)
+      const b = rotatedBounds(d.w, d.h, d.rotation)
+      expect(d.y + d.h / 2 + b.h / 2).toBeGreaterThan(2868)
+    }
+  })
+  it('keeps text on the named side', () => {
+    const l = newPair('panoTilted')
+    l.headline = 'L'
+    const r = newPair('panoTiltedRight')
+    r.headline = 'R'
+    const lo = TEMPLATES.panoTilted.layout(layoutInput(l))
+    const ro = TEMPLATES.panoTiltedRight.layout(layoutInput(r))
+    expect(lo.headline!.x + lo.headline!.w).toBeLessThanOrEqual(1320)
+    expect(ro.headline!.x).toBeGreaterThanOrEqual(1320)
+  })
+})

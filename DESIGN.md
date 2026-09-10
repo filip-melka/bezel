@@ -45,8 +45,9 @@ Slider readouts and any figure that changes while dragging use `font-variant-num
 
 | Token            | Value                           | Use                                                     |
 | ---------------- | ------------------------------- | ------------------------------------------------------- |
-| `--tint`         | `#ec3013`                       | Selection, primary button, focus ring, override markers |
-| `--tint-wash`    | `#fdece9`                       | Tinted button fills, selected-row backgrounds           |
+| `--tint`         | `#0a7aff`                       | Selection, primary button, focus ring, override markers |
+| `--tint-wash`    | `#e5f1ff`                       | Tinted button fills, selected-row backgrounds           |
+| `--destructive`  | `#ec3013`                       | Destructive buttons only (Delete, Remove)               |
 | `--label`        | `#1c1c1e`                       | Primary text                                            |
 | `--label-2`      | `rgba(60,60,67,.6)`             | Secondary text, section labels                          |
 | `--label-3`      | `rgba(60,60,67,.45)`            | Placeholder, disabled text                              |
@@ -60,7 +61,7 @@ Slider readouts and any figure that changes while dragging use `font-variant-num
 
 The stage grey is deliberately mid-value: both white and near-black slide backgrounds read correctly against it, and neither one wins.
 
-Contrast: all body-size text is ≥4.5:1 on its own ground. The tint is used for text only at 13 px/500 or larger on white (5.1:1); tinted text on `--tint-wash` uses `#a81f08`.
+Contrast: all body-size text is ≥4.5:1 on its own ground. The tint is used for text only at 13 px/500 or larger on white (5.1:1); tinted text on `--tint-wash` uses `#0a5fcc`.
 
 ### 2.3 Spacing and radius
 
@@ -138,7 +139,7 @@ Every slider is keyboard-operable: ←/→ step, ⇧←/→ ×10, ⌥ click rese
 - **Secondary** — `#f0f0f3` fill, 7 px radius, 500.
 - **Tinted** — `--tint-wash` fill, tint label. Used for "+ Add".
 - **Plain** — tint label, no fill. Back, Reset, Cancel.
-- **Destructive** — tint label on secondary fill. Remove, Delete.
+- **Destructive** — `--destructive` label on secondary fill. Remove. A filled `--destructive` variant is used for the confirming Delete in a sheet.
 
 ### 4.6 Thumbnail
 
@@ -146,7 +147,7 @@ Rounded 6–8 px, `0 0 0 1px rgba(0,0,0,.1)`. Selected: `0 0 0 2px var(--tint)` 
 
 ### 4.7 Sheet
 
-Centred card, 16 px radius, grabber at top, floating elevation over a scrim. Escape and scrim-click both dismiss. Used only for the template chooser and the export confirm.
+Centred card, 16 px radius, floating elevation over a scrim. Escape and scrim-click both dismiss; the only visible dismiss control is a Cancel button in the sheet footer, never in the header. Used for the template chooser, the export confirm, and the delete-project confirm.
 
 ---
 
@@ -164,7 +165,11 @@ Projects screen, empty. Three lines of explanation, a "New project" button, and 
 
 Select in the filmstrip → the inspector retitles to that slide's number → edit. Preview updates on the 40 ms debounce; thumbnails update on commit. Sliders track live at preview scale and re-render full-res on release (`SPEC.md` §7.2).
 
-### 5.4 Export
+### 5.4 App Store preview
+
+"Preview" in the top bar opens a full-screen mock of the product page: every exported slot side by side at App Store corner radius with the store's gap, so a panorama can be judged as shoppers will see it. Done or Escape returns to the editor. Nothing is editable there.
+
+### 5.5 Export
 
 Export ▾ offers "Download this slide" and "Download all as ZIP". If any item lacks a screenshot, a confirm sheet lists the affected numbers before rendering starts. Progress is a determinate bar with "Rendering 4 of 10"; on completion the button shows a checkmark for 1.2 s rather than firing a toast.
 
@@ -245,5 +250,5 @@ There is no mobile experience, by decision. Nothing in the app degrades toward o
 ## 11. Open decisions
 
 1. **Shell** — 2a (build this) vs 2b (recorded alternative). Revisit after the first real ten-slide set exists.
-2. **Tint colour** — red reads as "warning" to some users in an app whose warnings are amber. Blue is the safe alternative; red is the distinctive one. Not blocking.
+2. **Tint colour** — resolved: iOS blue. Red is reserved for destructive actions.
 3. **Set-theme-first inspector** — the option that makes Set the default tab and lists deviating slides underneath. Better for consistency across ten slides, worse for the single-slide edit loop. Deferred.

@@ -5,7 +5,7 @@ import type { TemplateDef } from './types'
 // SPEC §6.2: mirror of panoLeftText, text on the right slide.
 export const panoRightText: TemplateDef = {
   id: 'panoRightText',
-  name: 'Panorama, text right',
+  name: 'Text right',
   description: 'Two slides. Device across the seam, text on the right.',
   slots: 2,
   hasText: true,

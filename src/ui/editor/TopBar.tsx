@@ -11,6 +11,7 @@ export function TopBar() {
   const name = useProjectStore((p) => p.project?.name ?? '')
   const memoryOnly = useUiStore((u) => u.memoryOnly)
   const saveFlashAt = useUiStore((u) => u.saveFlashAt)
+  const setStorePreview = useUiStore((u) => u.setStorePreview)
   const [flash, setFlash] = useState(false)
   const [draft, setDraft] = useState(name)
   const [editing, setEditing] = useState(false)
@@ -62,6 +63,7 @@ export function TopBar() {
         </span>
       </div>
       <div className={s.topbarRight}>
+        <Button onClick={() => setStorePreview(true)}>Preview</Button>
         <ExportMenu />
       </div>
     </header>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Button } from './Button'
 import s from './controls.module.css'
 
 type Props = {
@@ -8,12 +7,14 @@ type Props = {
   onClose: () => void
   title: string
   children: ReactNode
+  width?: number
 }
 
 const OUT_MS = 160
 
 // Centred card over a scrim. Escape and scrim-click dismiss (DESIGN §4.7).
-export function Sheet({ open, onClose, title, children }: Props) {
+// Dismissal buttons belong to the sheet's own footer, not the header.
+export function Sheet({ open, onClose, title, children, width = 560 }: Props) {
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -54,13 +55,9 @@ export function Sheet({ open, onClose, title, children }: Props) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className={s.sheet} role="dialog" aria-modal="true" aria-label={title} ref={bodyRef}>
-        <div className={s.grabber} aria-hidden />
+      <div className={s.sheet} style={{ width: `min(${width}px, calc(100vw - 48px))` }} role="dialog" aria-modal="true" aria-label={title} ref={bodyRef}>
         <div className={s.sheetHeader}>
           <span className="t-title">{title}</span>
-          <Button variant="plain" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
         </div>
         <div className={s.sheetBody}>{children}</div>
       </div>

@@ -22,8 +22,11 @@ export type UiState = {
   assetsVersion: number
   // Last full-res preview render report for the selected item.
   previewReport: RenderReport | null
+  // Full-screen App Store preview mode.
+  storePreview: boolean
 
   select: (id: string | null) => void
+  setStorePreview: (v: boolean) => void
   bumpAssets: () => void
   setPreviewReport: (r: RenderReport | null) => void
   setTab: (tab: InspectorTab) => void
@@ -53,8 +56,10 @@ export const useUiStore = create<UiState>()((set) => ({
   dragging: false,
   assetsVersion: 0,
   previewReport: null,
+  storePreview: false,
 
   select: (id) => set({ selectedId: id }),
+  setStorePreview: (v) => set({ storePreview: v }),
   bumpAssets: () => set((s) => ({ assetsVersion: s.assetsVersion + 1 })),
   setPreviewReport: (r) => set({ previewReport: r }),
   setTab: (tab) => set({ inspectorTab: tab }),

@@ -8,6 +8,7 @@ import { createProject, deleteProject, duplicateProject, renameProjectRecord } f
 import { SLOT_CAP } from '../../model/types'
 import { toast } from '../../store/uiStore'
 import { Button } from '../controls/Button'
+import { Lockup } from '../controls/Logo'
 import { Sheet } from '../controls/Sheet'
 import { useDropZone } from '../hooks/useDropZone'
 import { ProjectCard } from './ProjectCard'
@@ -60,9 +61,9 @@ export function ProjectsScreen() {
   return (
     <div className={[s.root, drop.active ? s.dropActive : ''].join(' ')} {...drop.handlers}>
       <header className={s.header}>
-        <div className={s.brand}>
-          <span aria-hidden>▮</span> Bezel
-        </div>
+        <h1 className={s.brand}>
+          <Lockup size={22} />
+        </h1>
         <Button variant="primary" onClick={() => void onNew()}>
           New project
         </Button>
@@ -100,7 +101,7 @@ export function ProjectsScreen() {
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button onClick={() => setPendingDelete(null)}>Cancel</Button>
-          <Button variant="primary" onClick={() => void confirmDelete()}>
+          <Button variant="danger" onClick={() => void confirmDelete()}>
             Delete
           </Button>
         </div>

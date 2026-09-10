@@ -321,19 +321,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.swatches {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-}
-.swatchBtn {
-  aspect-ratio: 1;
-  border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-}
-.swatchBtn[aria-pressed='true'] {
-  box-shadow: 0 0 0 2px var(--tint);
-}
 .finishes {
   display: flex;
   gap: 10px;
@@ -367,7 +354,7 @@
 /* ---------- Add sheet ---------- */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 .tile {
@@ -478,4 +465,103 @@
   gap: 8px;
   text-align: center;
   padding: 24px;
+}
+
+/* ---------- App Store preview ---------- */
+.store {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  animation: storeIn 200ms var(--ease-sheet);
+}
+@keyframes storeIn {
+  from {
+    opacity: 0;
+  }
+}
+.storeBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--topbar-h);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--separator);
+  background: var(--bg-sidebar);
+}
+.storeBar .t-caption {
+  flex: 1;
+}
+.storePage {
+  flex: 1;
+  overflow: auto;
+  padding: 40px 0 60px;
+}
+.storeHeader {
+  display: flex;
+  gap: 20px;
+  width: min(1180px, calc(100vw - 80px));
+  margin: 0 auto 28px;
+}
+.storeIcon {
+  width: 118px;
+  height: 118px;
+  flex: none;
+}
+.storeIcon svg {
+  display: block;
+}
+.storeTitle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.storeName {
+  font-size: 22px;
+  font-weight: 700;
+}
+.storeSub {
+  font-size: 15px;
+  color: var(--label-2);
+}
+.storeGet {
+  margin-top: 10px;
+  width: 72px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--tint);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.storeSection {
+  width: min(1180px, calc(100vw - 80px));
+  margin: 0 auto 12px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.storeStrip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px calc((100vw - min(1180px, calc(100vw - 80px))) / 2) 16px;
+  scroll-padding-inline-start: calc((100vw - min(1180px, calc(100vw - 80px))) / 2);
+}
+.storeSlot {
+  flex: none;
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  background: #000;
+}
+.storeFooter {
+  width: min(1180px, calc(100vw - 80px));
+  margin: 8px auto 0;
+  font-size: 12.5px;
+  color: var(--label-2);
 }

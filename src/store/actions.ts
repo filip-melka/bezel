@@ -13,10 +13,12 @@ import type {
   Theme,
 } from '../model/types'
 import { getTemplate } from '../templates/registry'
+import { resetBatches } from './history'
 import { clearHistory, getProject, useProjectStore } from './projectStore'
 import { toast, useUiStore } from './uiStore'
 
 export function loadProject(project: Project | null): void {
+  resetBatches()
   useProjectStore.setState({ project })
   clearHistory()
   useUiStore.getState().select(project?.items[0]?.id ?? null)

@@ -13,6 +13,7 @@ import { ExportConfirmSheet } from './ExportConfirmSheet'
 import { Filmstrip } from './Filmstrip'
 import { Inspector } from './Inspector'
 import { Stage } from './Stage'
+import { StorePreview } from './StorePreview'
 import { TopBar } from './TopBar'
 import { startExportAll } from './exportFlow'
 import s from './editor.module.css'
@@ -118,6 +119,7 @@ export function Editor({ id }: { id: string }) {
       </div>
       <AddSheet />
       <ExportConfirmSheet />
+      <StorePreview />
     </div>
   )
 }

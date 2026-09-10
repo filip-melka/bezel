@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import s from './controls.module.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'tinted' | 'plain' | 'destructive'
+export type ButtonVariant = 'primary' | 'secondary' | 'tinted' | 'plain' | 'destructive' | 'danger'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant

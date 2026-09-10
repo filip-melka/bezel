@@ -39,8 +39,8 @@ export type TextStyle = {
 
 export type BezelFinish = 'black' | 'white' | 'blue' | 'orange'
 
-export type SlideTemplateId = 'textTop' | 'deviceOnly' | 'tilted'
-export type PairTemplateId = 'panoLeftText' | 'panoRightText'
+export type SlideTemplateId = 'textTop' | 'textBottom' | 'deviceOnly' | 'tilted'
+export type PairTemplateId = 'panoLeftText' | 'panoRightText' | 'panoTilted' | 'panoTiltedRight'
 export type TemplateId = SlideTemplateId | PairTemplateId
 
 export type Overrides = Partial<Pick<Theme, 'background' | 'headline' | 'subheadline'>>

@@ -117,7 +117,7 @@ type SlideItem = Slide | Pair
 type Slide = {
   kind: 'slide'
   id: string
-  template: 'textTop' | 'deviceOnly' | 'tilted'
+  template: SlideTemplateId
   screenshot: ScreenshotRef | null
   headline: string          // may be empty; ignored by deviceOnly
   subheadline: string
@@ -129,7 +129,7 @@ type Slide = {
 type Pair = {
   kind: 'pair'
   id: string
-  template: 'panoLeftText' | 'panoRightText'
+  template: PairTemplateId
   screenshot: ScreenshotRef | null
   headline: string
   subheadline: string
@@ -204,6 +204,10 @@ type TemplateDef = {
 - Device: frame width = 1080 × scale, centered horizontally, top edge placed 140 px below the subheadline bottom (or headline bottom if subheadline empty). The bottom of the device is intentionally cropped by the canvas edge.
 - Limits: scale 0.85–1.15, deviceOffsetY −200…+300, textOffsetY −80…+120.
 
+**textBottom — "Text bottom, device top"**
+- Inverse of textTop: the text block is anchored so its bottom sits 200 px above the canvas bottom; the device (frame width 1080 × scale) hangs from the top edge with its bottom edge 140 px above the text. Top of the device is cropped.
+- Limits: scale 0.85–1.15, deviceOffsetY −300…+200, textOffsetY −120…+80.
+
 **deviceOnly — "Device centered"**
 - No text slots. Headline/subheadline fields are hidden in the inspector.
 - Device fully visible, frame height = 2868 − 2 × 180 px padding at scale 1, centered.
@@ -226,6 +230,11 @@ Both render on a 2640 × 2868 canvas.
 
 **panoRightText**
 - Mirror image: text on the right slide, same device placement.
+
+**panoTilted — "Tilted left"** and **panoTiltedRight — "Tilted right"**
+- Device frame width 1400 × scale, rotated −12° (text left) or +12° (text right) about its centre on the seam, with its rotated bounds overhanging the canvas bottom by 1000 px so the low corner sits under the text side.
+- Text slot on the named slide: x=120 (left) or 1520 (right), y=260, width 1000, headline max 3 lines, subheadline max 2.
+- Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −100…+200.
 
 The background gradient is evaluated over the full 2640-wide canvas, so it is continuous across the seam. Text never crosses the seam.
 
@@ -340,11 +349,15 @@ Sections, top to bottom:
 
 ### 9.5 Inspector — Theme tab
 
-1. **Background** — kind selector (solid / linear / radial); color picker for solid; for gradients, 2–4 stops with color and offset, angle dial for linear; 12 preset gradients shown as swatches.
+1. **Background** — kind selector (solid / linear / radial); color picker for solid; for gradients, 2–4 stops with color and offset, angle dial for linear.
 2. **Headline style** and **Subheadline style** — size, weight, color, alignment.
 3. **Bezel** — finish swatches (4), shadow toggle.
 
 Changing the theme re-renders all thumbnails.
+
+### 9.6 App Store preview
+
+"Preview" in the top bar opens a full-screen, read-only mock of an App Store product page: a placeholder icon and the project name above a horizontal strip of every exported slot, each rendered at the same scale with App Store corner radius and a 12 px gap. Pairs appear as two adjacent slots so the panorama reads as it will in the store. Done or Escape closes it.
 
 ### 9.6 Export menu
 

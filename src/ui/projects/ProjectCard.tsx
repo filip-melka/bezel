@@ -110,9 +110,6 @@ export function ProjectCard({ project, onOpen, onRename, onDuplicate, onDelete }
         </span>
       </div>
       <div className={s.cardActions}>
-        <Button size="sm" onClick={onOpen}>
-          Open
-        </Button>
         <Button size="sm" variant="plain" onClick={() => setEditing(true)}>
           Rename
         </Button>

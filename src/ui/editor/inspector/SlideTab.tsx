@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { resolveTheme } from '../../../model/defaults'
 import type { SlideItem, TemplateId, Theme } from '../../../model/types'
 import { aspectMismatch } from '../../../render/renderItem'
-import { PAIR_TEMPLATE_IDS, SLIDE_TEMPLATE_IDS, TEMPLATES, templateFor } from '../../../templates/registry'
+import { PAIR_TEMPLATE_IDS, SHORT_NAMES, SLIDE_TEMPLATE_IDS, TEMPLATES, templateFor } from '../../../templates/registry'
 import { clearOverride, setOverride, setScreenshot, setTemplate } from '../../../store/actions'
 import { useUiStore } from '../../../store/uiStore'
 import { Button } from '../../controls/Button'
@@ -40,7 +40,7 @@ export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
           ariaLabel="Template"
           value={item.template}
           onChange={(t) => setTemplate(item.id, t)}
-          options={ids.map((id) => ({ value: id, label: TEMPLATES[id].name }))}
+          options={ids.map((id) => ({ value: id, label: SHORT_NAMES[id], title: TEMPLATES[id].name }))}
         />
       </section>
 

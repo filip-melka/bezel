@@ -1,8 +1,13 @@
 /* DESIGN.md §2 foundations. Light only in v1; dark can redefine these later. */
 :root {
-  --tint: #ec3013;
-  --tint-wash: #fdece9;
-  --tint-on-wash: #a81f08;
+  --tint: #0a7aff;
+  --tint-hover: #0066e0;
+  --tint-wash: #e5f1ff;
+  --tint-wash-hover: #d3e6ff;
+  --tint-on-wash: #0a5fcc;
+  --destructive: #ec3013;
+  --destructive-hover: #d42a10;
+  --destructive-wash: #fdece9;
   --label: #1c1c1e;
   --label-2: rgba(60, 60, 67, 0.6);
   --label-3: rgba(60, 60, 67, 0.45);
