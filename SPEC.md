@@ -283,7 +283,7 @@ If wrapped text exceeds the slot's max line count, reduce the font size by 4 px 
 ## 8. Bezel asset
 
 - A single hand-authored SVG approximating the iPhone 17 Pro, drawn for this project and licensed with the repository. It is not an Apple asset.
-- Canonical size: frame bounding box 1436 × 3084 logical px containing a screen area of 1320 × 2868 with corner radius 176 px, centered, so that at device scale 1 in a template the screenshot is not upscaled.
+- Canonical size: frame bounding box 1436 × 2984 logical px containing a screen area of 1320 × 2868 with corner radius 176 px, centered behind a uniform 44 px bezel, so that at device scale 1 in a template the screenshot is not upscaled.
 - The asset is structured as layers: `frame-body`, `screen-cutout` (used only to derive the clip path), `dynamic-island`, `buttons`, `highlights`. Finish colors are applied via CSS custom properties inside the SVG (`--body`, `--edge`, `--highlight`). Four finishes: black, white, blue, orange. Each finish is a set of three colors defined in code.
 - At load, the SVG is instantiated once per finish as an `Image` from a Blob URL and cached. Screen path geometry (rect + radius) is stored as constants in code, not parsed from the SVG, so rendering does not depend on SVG DOM parsing.
 - Rendering the SVG through `drawImage` at 1436 px width produces crisp edges; the asset must not contain raster or filter elements that Canvas ignores. Shadows are drawn by the renderer, not baked into the SVG.
@@ -391,7 +391,7 @@ Database `bezel`, version 1.
 
 - Accepted types: PNG, JPEG, WebP. HEIC and others are rejected with "Bezel can't read this format. Export as PNG from Photos or Simulator."
 - Decoded via `createImageBitmap`. If decoding fails, the same message is shown.
-- If the image is larger than 2640 px on its longest side, it is downscaled to that bound with high-quality smoothing and re-encoded as PNG before storing. Original dimensions are kept in `ScreenshotRef` for the inspector label.
+- If the image is larger than 2868 px on its longest side (the native 6.9" height, so a native screenshot is stored untouched), it is downscaled to that bound with high-quality smoothing and re-encoded as PNG before storing. Original dimensions are kept in `ScreenshotRef` for the inspector label.
 - Max file size 40 MB. Larger files are rejected with a message.
 - Storage quota: if a write throws `QuotaExceededError`, the import is rolled back and the user is told to delete other projects.
 
@@ -437,7 +437,7 @@ Database `bezel`, version 1.
 - Initial bundle under 300 KB gzipped, excluding the bezel SVGs (~4 × 40 KB).
 - Full-res render of one slide under 60 ms on an M1 MacBook Air, under 150 ms on a 2019 Intel laptop.
 - Preview updates within one frame after the debounce for typing; sliders track at 60 fps at preview scale.
-- Peak memory for a full 10-slot project with 2640 px-bound screenshots under 400 MB.
+- Peak memory for a full 10-slot project with 2868 px-bound screenshots under 400 MB.
 
 ---
 

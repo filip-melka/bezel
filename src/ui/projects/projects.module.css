@@ -1,0 +1,104 @@
+.root {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-sidebar);
+  position: relative;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--separator);
+  position: sticky;
+  top: 0;
+  background: var(--bg-sidebar);
+  z-index: 2;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 24px 28px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-content);
+  border-radius: 12px;
+  box-shadow: var(--shadow-raised), 0 0 0 1px var(--separator);
+}
+.cardThumb {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: var(--stage);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.cardThumb canvas {
+  display: block;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cardName {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+}
+.cardNameInput {
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--fill);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.cardActions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: calc(100vh - 140px);
+  text-align: center;
+  padding: 24px;
+}
+.empty p {
+  margin: 0;
+  color: var(--label-2);
+  max-width: 420px;
+}
+.dropActive::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 2px dashed var(--tint);
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 3;
+}

@@ -1,0 +1,45 @@
+/* DESIGN.md §2 foundations. Light only in v1; dark can redefine these later. */
+:root {
+  --tint: #ec3013;
+  --tint-wash: #fdece9;
+  --tint-on-wash: #a81f08;
+  --label: #1c1c1e;
+  --label-2: rgba(60, 60, 67, 0.6);
+  --label-3: rgba(60, 60, 67, 0.45);
+  --bg-sidebar: #f7f7f9;
+  --bg-content: #ffffff;
+  --fill: #f2f2f5;
+  --fill-control: #e9e9ec;
+  --fill-secondary: #f0f0f3;
+  --separator: rgba(0, 0, 0, 0.09);
+  --stage: #8e8e93;
+  --warning: #ffcc00;
+  --warning-text: #6b4e00;
+  --track: #e4e4e7;
+
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 20px 50px rgba(0, 0, 0, 0.34);
+  --shadow-slide: 0 18px 44px rgba(0, 0, 0, 0.32);
+  --shadow-thumb: 0 1px 4px rgba(0, 0, 0, 0.3);
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-seg: 9px;
+  --r-card: 12px;
+  --r-sheet: 16px;
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --filmstrip-w: 180px;
+  --inspector-w: 340px;
+  --topbar-h: 48px;
+
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (max-width: 1279px) {
+  :root {
+    --filmstrip-w: 160px;
+    --inspector-w: 300px;
+  }
+}
