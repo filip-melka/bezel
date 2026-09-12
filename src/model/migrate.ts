@@ -1,4 +1,6 @@
 import { DEFAULT_PAIR_TEMPLATE, DEFAULT_SLIDE_TEMPLATE, isTemplateId } from '../templates/registry'
+import { isFontId } from '../assets/fonts/fonts'
+import { DEFAULT_FONT } from './defaults'
 import type { Project } from './types'
 
 export class MigrationError extends Error {
@@ -10,7 +12,7 @@ export class MigrationError extends Error {
   }
 }
 
-export const CURRENT_SCHEMA_VERSION = 3
+export const CURRENT_SCHEMA_VERSION = 4
 
 type Raw = Record<string, unknown>
 type Migration = (raw: Raw) => Raw
@@ -62,6 +64,16 @@ const MIGRATIONS: Record<number, Migration> = {
     schemaVersion: 3,
     items: Array.isArray(raw.items) ? raw.items.map(migrateItemV2toV3) : raw.items,
   }),
+  // v3 → v4: the font moves from the machine into the project. Slide text used
+  // to be drawn in whatever the OS resolved from a system stack, so the same
+  // project exported differently on different machines; it is now one of the
+  // bundled families (SPEC §7.3). Existing projects take the default, which
+  // means their text changes face once — the point of the change.
+  3: (raw) => ({
+    ...raw,
+    schemaVersion: 4,
+    theme: typeof raw.theme === 'object' && raw.theme !== null ? { font: DEFAULT_FONT, ...(raw.theme as Raw) } : raw.theme,
+  }),
 }
 
 export function migrateProject(input: unknown): Project {
@@ -105,6 +117,7 @@ export function tryMigrateProject(input: unknown): Project | null {
 // sides had separate text positions gets a right offset equal to the shared
 // one, so nothing moves.
 function normalize(raw: Raw): Raw {
+  raw = normalizeFont(raw)
   if (!Array.isArray(raw.items)) return raw
   let changed = false
   const items = raw.items.map((it: unknown) => {
@@ -121,6 +134,16 @@ function normalize(raw: Raw): Raw {
     return { ...item, textNudgeRight: { offsetY } }
   })
   return changed ? { ...raw, items } : raw
+}
+
+// A font id this build does not know (or a project hand-edited without one)
+// falls back to the default rather than resolving to an undefined stack.
+function normalizeFont(raw: Raw): Raw {
+  const theme = raw.theme
+  if (typeof theme !== 'object' || theme === null) return raw
+  const font = (theme as Raw).font
+  if (isFontId(font)) return raw
+  return { ...raw, theme: { ...(theme as Raw), font: DEFAULT_FONT } }
 }
 
 function validate(raw: Raw): void {

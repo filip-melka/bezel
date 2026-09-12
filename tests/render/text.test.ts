@@ -29,7 +29,7 @@ describe('wrapLines', () => {
 
 describe('fitText', () => {
   it('does not shrink when the text fits', () => {
-    const r = fitText('short', style, 1000, 3, fakeMeasure)
+    const r = fitText('short', style, 1000, 3, 'Inter, sans-serif', fakeMeasure)
     expect(r.shrunk).toBe(false)
     expect(r.style.size).toBe(100)
     expect(r.lines).toEqual(['short'])
@@ -38,7 +38,7 @@ describe('fitText', () => {
   })
   it('shrinks in 4 px steps until the text fits the line limit', () => {
     // 'aaaa bbbb cccc dddd' at 100 px: 4 lines in 300 px width. At 60 px each word is 120 → 2 per line (270 ≤ 300).
-    const r = fitText('aaaa bbbb cccc dddd', style, 300, 2, fakeMeasure)
+    const r = fitText('aaaa bbbb cccc dddd', style, 300, 2, 'Inter, sans-serif', fakeMeasure)
     expect(r.shrunk).toBe(true)
     expect(r.lines.length).toBeLessThanOrEqual(2)
     expect(r.style.size).toBeLessThan(100)
@@ -46,7 +46,7 @@ describe('fitText', () => {
   })
   it('stops at the 55% floor and truncates with an ellipsis', () => {
     const long = Array.from({ length: 40 }, (_, i) => `word${i}`).join(' ')
-    const r = fitText(long, style, 400, 2, fakeMeasure)
+    const r = fitText(long, style, 400, 2, 'Inter, sans-serif', fakeMeasure)
     expect(r.shrunk).toBe(true)
     expect(r.style.size).toBeGreaterThanOrEqual(55)
     expect(r.style.size).toBeLessThan(60)
@@ -57,7 +57,7 @@ describe('fitText', () => {
     expect(fakeMeasure(r.lines[1]!, font)).toBeLessThanOrEqual(400)
   })
   it('never returns a size below the floor', () => {
-    const r = fitText('x'.repeat(500), { ...style, size: 96 }, 100, 1, fakeMeasure)
+    const r = fitText('x'.repeat(500), { ...style, size: 96 }, 100, 1, 'Inter, sans-serif', fakeMeasure)
     expect(r.style.size).toBeGreaterThanOrEqual(Math.ceil(96 * 0.55))
   })
 })

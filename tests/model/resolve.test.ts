@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultTheme, resolveTextStyle } from '../../src/model/defaults'
+import { defaultTheme, resolveTextStyle, resolveTheme } from '../../src/model/defaults'
 
 describe('resolveTextStyle', () => {
   const theme = defaultTheme()
@@ -16,5 +16,24 @@ describe('resolveTextStyle', () => {
     const overrides = { headline: { ...theme.headline, align: 'left' as const }, headlineRight: { ...theme.headline, align: 'right' as const } }
     expect(resolveTextStyle(theme, overrides, 'headline').align).toBe('left')
     expect(resolveTextStyle(theme, overrides, 'headlineRight').align).toBe('right')
+  })
+})
+
+describe('resolveTheme', () => {
+  const theme = defaultTheme()
+  it('carries the set font through to the renderer', () => {
+    expect(resolveTheme(theme, {}).font).toBe(theme.font)
+    expect(resolveTheme({ ...theme, font: 'jakarta' }, {}).font).toBe('jakarta')
+  })
+  it('keeps the font set-level: no override can change it on one slide', () => {
+    // The font is deliberately not part of TextStyle. If it were, a style
+    // override would snapshot it and that slide would stop following the set
+    // when the project font changed.
+    const overrides = {
+      background: { kind: 'solid' as const, color: '#123456' },
+      headline: { ...theme.headline, size: 150 },
+    }
+    expect(resolveTheme({ ...theme, font: 'sourceSerif' }, overrides).font).toBe('sourceSerif')
+    expect('font' in theme.headline).toBe(false)
   })
 })

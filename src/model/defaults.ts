@@ -1,5 +1,6 @@
 import type {
   Background,
+  FontId,
   GradientStop,
   Pair,
   PairTemplateId,
@@ -31,12 +32,15 @@ export const DEFAULT_BACKGROUND: Background = {
   ] satisfies GradientStop[],
 }
 
+export const DEFAULT_FONT: FontId = 'inter'
+
 export const DEFAULT_HEADLINE: TextStyle = { size: 96, weight: 700, color: '#ffffff', align: 'center' }
 export const DEFAULT_SUBHEADLINE: TextStyle = { size: 56, weight: 500, color: '#e6e6eb', align: 'center' }
 
 export function defaultTheme(): Theme {
   return {
     background: structuredClone(DEFAULT_BACKGROUND),
+    font: DEFAULT_FONT,
     headline: { ...DEFAULT_HEADLINE },
     subheadline: { ...DEFAULT_SUBHEADLINE },
     bezel: { finish: 'black', shadow: true },
@@ -85,7 +89,7 @@ export function newProject(name: string): Project {
     name,
     createdAt: now,
     updatedAt: now,
-    schemaVersion: 3,
+    schemaVersion: 4,
     theme: defaultTheme(),
     items: [newSlide('textTop')],
   }
@@ -103,6 +107,7 @@ export function resolveTextStyle(theme: Theme, overrides: Overrides, key: TextSt
 export function resolveTheme(theme: Theme, overrides: Slide['overrides']): Theme {
   return {
     background: overrides.background ?? theme.background,
+    font: theme.font,
     headline: { ...theme.headline, ...overrides.headline },
     subheadline: { ...theme.subheadline, ...overrides.subheadline },
     bezel: theme.bezel,

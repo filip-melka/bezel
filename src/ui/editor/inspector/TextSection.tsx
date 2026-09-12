@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { FONTS } from '../../../assets/fonts/fonts'
 import { resolveTextStyle } from '../../../model/defaults'
 import { HEADLINE_MAX_CHARS, SUBHEADLINE_MAX_CHARS, type SlideItem, type TextStyleKey, type Theme } from '../../../model/types'
 import { clearOverride, patchTextOverride, setItemText, setOverride, type TextKey } from '../../../store/actions'
@@ -71,6 +72,9 @@ export function TextSection({ item, slot, theme }: Props) {
                 ) : null}
                 <textarea
                   className={c.textarea}
+                  // Typed in the face it will be drawn in, so the field shows
+                  // what the slide gets.
+                  style={{ fontFamily: FONTS[theme.font].stack }}
                   aria-label={side.label ? `${title} text, ${side.label.toLowerCase()}` : `${title} text`}
                   placeholder={side.label === 'Right slide' ? 'Leave empty for no text on this side' : placeholder}
                   value={side.value}

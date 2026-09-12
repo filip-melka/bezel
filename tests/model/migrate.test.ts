@@ -43,7 +43,7 @@ describe('migrateProject', () => {
         pair('panoTiltedRight', 'TR'),
       ],
     })
-    expect(out.schemaVersion).toBe(3)
+    expect(out.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
     const [slide, left, right, tiltL, tiltR] = out.items as unknown as Array<Record<string, string>>
     expect(slide).toEqual({ kind: 'slide', id: 's', template: 'textTop', headline: 'keep', subheadline: '' })
     expect(left).toMatchObject({ template: 'panorama', headline: 'L', subheadline: 'sub', headlineRight: '', subheadlineRight: '' })
@@ -63,7 +63,7 @@ describe('migrateProject', () => {
         { kind: 'slide', id: 'd', template: 'textTop' },
       ],
     })
-    expect(out.schemaVersion).toBe(3)
+    expect(out.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
     const [lock, island, tilt, plain] = out.items as unknown as Array<Record<string, unknown>>
     // The crop and every widget setting survive the fold.
     expect(lock).toMatchObject({ template: 'textTop', widget: { mode: 'lockActivity', crop, screen: 'placeholder', scale: 1.5, offsetY: 10 } })
@@ -83,6 +83,20 @@ describe('migrateProject', () => {
     })
     expect(out.items[0]!.template).toBe('textTop')
     expect(out.items[1]!.template).toBe('panorama')
+  })
+  it('v3 → v4 moves the font from the machine into the project', () => {
+    const base = { id: 'p', name: 'x', createdAt: 0, updatedAt: 0, schemaVersion: 3, items: [] }
+    const out = migrateProject({ ...base, theme: { background: { kind: 'solid', color: '#000' } } })
+    expect(out.schemaVersion).toBe(4)
+    expect(out.theme.font).toBe('inter')
+    // A project that already names a font keeps it.
+    const kept = migrateProject({ ...base, theme: { background: { kind: 'solid', color: '#000' }, font: 'sourceSerif' } })
+    expect(kept.theme.font).toBe('sourceSerif')
+  })
+  it('replaces a font id it does not know rather than resolving to no stack', () => {
+    const p = newProject('x')
+    const out = migrateProject({ ...p, theme: { ...p.theme, font: 'comicSans' } })
+    expect(out.theme.font).toBe('inter')
   })
   it('gives pairs saved without a right text offset the shared one, so nothing moves', () => {
     const p = newProject('x')

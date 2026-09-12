@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { getDb, isMemoryOnly } from '../persistence/db'
 import { sweepOrphanAssets } from '../persistence/gc'
 import { loadAllBezels } from '../render/bezel'
-import { fontsReady } from '../render/fonts'
+import { fontsReady } from '../assets/fonts/fonts'
 import { useUiStore } from '../store/uiStore'
 import { ToastHost } from '../ui/controls/Toast'
 import { Editor } from '../ui/editor/Editor'
@@ -22,6 +22,15 @@ export function App() {
       await sweepOrphanAssets()
     })()
     void Promise.all([loadAllBezels(), fontsReady()]).then(() => useUiStore.getState().bumpAssets())
+  }, [])
+
+  // A face that arrives after fontsReady's 1 s race would otherwise leave the
+  // preview drawn in the fallback until the next edit.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !('fonts' in document)) return
+    const onDone = () => useUiStore.getState().bumpAssets()
+    document.fonts.addEventListener('loadingdone', onDone)
+    return () => document.fonts.removeEventListener('loadingdone', onDone)
   }, [])
 
   if (tooNarrow) {

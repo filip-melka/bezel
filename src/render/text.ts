@@ -60,6 +60,7 @@ export function fitText(
   style: TextStyle,
   maxWidth: number,
   maxLines: number,
+  family: string,
   measure: MeasureFn,
 ): FitResult {
   const requested = style.size
@@ -67,7 +68,7 @@ export function fitText(
   let size = requested
   let lines: string[] = []
   for (;;) {
-    const font = fontString({ size, weight: style.weight })
+    const font = fontString({ size, weight: style.weight }, family)
     lines = wrapLines(text, maxWidth, (s) => measure(s, font))
     if (lines.length <= maxLines || size - SHRINK_STEP < floor) break
     size -= SHRINK_STEP
@@ -75,7 +76,7 @@ export function fitText(
   let shrunk = size !== requested
   if (lines.length > maxLines) {
     // Still too long at the floor: truncate with an ellipsis.
-    const font = fontString({ size, weight: style.weight })
+    const font = fontString({ size, weight: style.weight }, family)
     lines = lines.slice(0, maxLines)
     let last = lines[maxLines - 1] ?? ''
     while (last.length > 0 && measure(last + ELLIPSIS, font) > maxWidth) last = last.slice(0, -1)

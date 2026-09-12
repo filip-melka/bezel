@@ -14,8 +14,10 @@ import {
   traceBodyPath,
   traceScreenPath,
 } from './bezel'
-import { FONT_FAMILY, fontString } from './fonts'
+import { fontString } from './fonts'
+import { FONTS } from '../assets/fonts/fonts'
 import { drawHomePlaceholder, drawLockPlaceholder } from './placeholders'
+import { PLACEHOLDER_FONT } from '../assets/fonts/fonts'
 import { fitText } from './text'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
@@ -54,6 +56,7 @@ export function renderItem(
   const report: RenderReport = { textShrunk: false, screenshotAspectMismatch: false, missingScreenshot: false }
   const resolvedTheme = resolveTheme(theme, item.overrides)
   const { w: canvasW, h: canvasH } = canvasSizeFor(item)
+  const family = FONTS[resolvedTheme.font].stack
   const screenshot = item.screenshot ? assets(item.screenshot.assetId) : undefined
   const screenshotSize = item.screenshot ? { w: item.screenshot.width, h: item.screenshot.height } : null
 
@@ -69,7 +72,7 @@ export function renderItem(
     resolvedTheme,
     screenshotSize,
     measureText: (text, style, maxWidth, maxLines) =>
-      fitText(text, style, maxWidth, maxLines, (s, font) => {
+      fitText(text, style, maxWidth, maxLines, family, (s, font) => {
         ctx.font = font
         return ctx.measureText(s).width
       }),
@@ -85,7 +88,7 @@ export function renderItem(
 
   for (const block of [layout.headline, layout.subheadline, layout.headlineRight, layout.subheadlineRight]) {
     if (!block) continue
-    drawTextBlock(ctx, block)
+    drawTextBlock(ctx, block, family)
     if (block.shrunk) report.textShrunk = true
   }
 
@@ -157,7 +160,7 @@ function drawDevice(
     ctx.fillRect(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H)
     if (preview) {
       ctx.fillStyle = 'rgba(255,255,255,0.5)'
-      ctx.font = `500 56px ${FONT_FAMILY}`
+      ctx.font = `500 56px ${PLACEHOLDER_FONT}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('Drop screenshot', SCREEN_X + SCREEN_W / 2, SCREEN_Y + SCREEN_H / 2)
@@ -178,9 +181,9 @@ function drawDevice(
   ctx.restore()
 }
 
-function drawTextBlock(ctx: Ctx2D, block: TextBlock): void {
+function drawTextBlock(ctx: Ctx2D, block: TextBlock, family: string): void {
   ctx.save()
-  ctx.font = fontString(block.style)
+  ctx.font = fontString(block.style, family)
   ctx.fillStyle = block.style.color
   ctx.textAlign = block.style.align
   ctx.textBaseline = 'middle'

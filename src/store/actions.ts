@@ -2,6 +2,7 @@ import { canAdd, clampItemToTemplate, exportNumbers, rangeLabel, slotCost } from
 import { defaultWidget, newPair, newSlide, resolveTextStyle, uuid } from '../model/defaults'
 import type {
   Background,
+  FontId,
   Overrides,
   PairTemplateId,
   Project,
@@ -235,6 +236,11 @@ export function setThemeBackground(background: Background): void {
 
 export function patchThemeText(key: 'headline' | 'subheadline', patch: Partial<TextStyle>): void {
   setTheme((t) => ({ ...t, [key]: { ...t[key], ...patch } }))
+}
+
+// Set-level, like the bezel finish: every slide in the set uses it.
+export function setThemeFont(font: FontId): void {
+  setTheme((t) => (t.font === font ? t : { ...t, font }))
 }
 
 export function setBezel(patch: Partial<Theme['bezel']>): void {

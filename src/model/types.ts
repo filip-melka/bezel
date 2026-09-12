@@ -5,7 +5,7 @@ export type ProjectMeta = {
   name: string
   createdAt: number
   updatedAt: number
-  schemaVersion: 3
+  schemaVersion: 4
 }
 
 export type Project = ProjectMeta & {
@@ -15,10 +15,17 @@ export type Project = ProjectMeta & {
 
 export type Theme = {
   background: Background
+  // Set-level, like the bezel finish: one font per screenshot set. Not part of
+  // TextStyle, so a slide with a style override still follows the set's font.
+  font: FontId
   headline: TextStyle
   subheadline: TextStyle
   bezel: { finish: BezelFinish; shadow: boolean }
 }
+
+// The bundled families (src/assets/fonts). Slide text is drawn in one of these
+// rather than a system font, so a project exports identically on every machine.
+export type FontId = 'inter' | 'jakarta' | 'sourceSerif'
 
 export type Background =
   | { kind: 'solid'; color: string }

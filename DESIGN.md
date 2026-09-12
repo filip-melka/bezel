@@ -24,11 +24,13 @@ Language: iOS-flavoured, desktop-density. Light only — no dark mode in v1.
 
 ### 2.1 Type
 
-Single stack, identical to the one the renderer draws slide text with (§7.3 of `SPEC.md`), so chrome and output never disagree about metrics:
+Two stacks, on purpose. The **chrome** — every label, row, button and menu — uses the system stack, so the editor keeps feeling like a Mac app rather than a web page:
 
 ```
 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif
 ```
+
+The **output** uses one of three bundled families, chosen per set (§7.3 of `SPEC.md`). Slide text cannot follow the chrome, because a system stack resolves differently on every operating system and the export would change with the machine. So the two surfaces are allowed to disagree, and they meet in the only two places where the distinction matters to the user: the headline and subheadline fields are set in the slide's own family, so what you type looks like what gets drawn, and each tile in the Theme tab's Font control is set in the family it names.
 
 | Role          | Size / weight                     | Use                                     |
 | ------------- | --------------------------------- | --------------------------------------- |
@@ -40,6 +42,8 @@ Single stack, identical to the one the renderer draws slide text with (§7.3 of 
 | Numeric       | 11.5 px / 500, tabular figures    | Slider readouts, slot counts, px values |
 
 Slider readouts and any figure that changes while dragging use `font-variant-numeric: tabular-nums` so the row does not jitter.
+
+The size and weight table below is chrome only; slide type is sized by the template and the Headline/Subheadline style controls.
 
 ### 2.2 Colour
 

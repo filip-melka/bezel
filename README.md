@@ -3,11 +3,12 @@
 Bezel is a free, fully client-side web app for producing App Store screenshot sets for iPhone. Drop raw screenshots, pick a built-in layout per slide, write a headline, and export a numbered set of PNGs at the App Store 6.9" size (1320 × 2868).
 
 - Six locked layouts: text top, text bottom, device only and tilted for a single slide, plus two panoramic pair layouts that render one device across two adjacent slides, straight or tilted, with text on either slide. Tilted leans either way, and any layout can lift a Live Activity — the lock-screen card or the expanded Dynamic Island, cut out of the screenshot automatically — off the screen.
+- Type set in one of three bundled fonts — Inter, Plus Jakarta Sans or Source Serif 4 — chosen per set. The files ship with the app, so a project exports identically on any machine instead of picking up whatever font the operating system happens to resolve.
 - Realistic vector iPhone bezel in four finishes, with optional drop shadow.
-- Set-level theme (background, text styles, bezel) with per-slide overrides that are shown as overrides.
+- Set-level theme (background, font, text styles, bezel) with per-slide overrides that are shown as overrides.
 - Auto-shrinking headlines, cover-fit screenshots with crop warnings, a hard cap of 10 slots.
 - Autosave to IndexedDB, multiple named projects, full undo/redo.
-- Zero network. Screenshots never leave the browser. The build is checked for external URLs.
+- Zero network. Screenshots never leave the browser, fonts are bundled rather than fetched, and the build is checked for external URLs in scripts, stylesheets and HTML.
 
 `SPEC.md` describes what the app does. `DESIGN.md` describes how it looks and behaves.
 

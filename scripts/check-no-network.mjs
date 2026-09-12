@@ -1,5 +1,7 @@
-// Fails the build if any script or stylesheet in dist/ references an external URL.
-// Bezel makes zero network requests by design (SPEC §3).
+// Fails the build if any script, stylesheet or HTML file in dist/ references an
+// external URL. Bezel makes zero network requests by design (SPEC §3) — fonts
+// are bundled, not fetched from a CDN, and index.html is scanned so a <link> to
+// a font or script host cannot slip past this check.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -10,7 +12,7 @@ function walk(dir) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
     if (statSync(p).isDirectory()) walk(p)
-    else if (/\.(js|css)$/.test(name)) scan(p)
+    else if (/\.(js|css|html)$/.test(name)) scan(p)
   }
 }
 

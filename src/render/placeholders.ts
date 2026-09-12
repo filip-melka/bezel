@@ -1,6 +1,6 @@
 import { SCREEN_H, SCREEN_W, SCREEN_X, SCREEN_Y } from './bezel'
 import { hexToHsl, hsl, needsDarkInk } from './color'
-import { FONT_FAMILY } from './fonts'
+import { PLACEHOLDER_FONT } from '../assets/fonts/fonts'
 import type { Ctx2D } from './renderItem'
 
 // Drawn stand-ins for the screen behind a Live Activity cut-out, in frame
@@ -71,9 +71,9 @@ export function drawLockPlaceholder(ctx: Ctx2D, base: string | null = null): voi
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = p.ink(0.92)
-  ctx.font = `600 54px ${FONT_FAMILY}`
+  ctx.font = `600 54px ${PLACEHOLDER_FONT}`
   ctx.fillText('Monday 6 October', SCREEN_X + SCREEN_W / 2, SCREEN_Y + 330)
-  ctx.font = `700 250px ${FONT_FAMILY}`
+  ctx.font = `700 250px ${PLACEHOLDER_FONT}`
   ctx.fillText('9:41', SCREEN_X + SCREEN_W / 2, SCREEN_Y + 520)
 
   const by = SCREEN_Y + SCREEN_H - 250
@@ -169,7 +169,7 @@ function drawStatusBar(ctx: Ctx2D, ink: Ink): void {
   ctx.fillStyle = solid
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.font = `600 54px ${FONT_FAMILY}`
+  ctx.font = `600 54px ${PLACEHOLDER_FONT}`
   ctx.fillText('9:41', X + 104, cy + 2)
 
   // Signal: four bars rising left to right.

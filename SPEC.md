@@ -53,9 +53,10 @@ This document is the result of a requirements interview and is the source of tru
 | Drag and drop | `@dnd-kit/sortable` | Filmstrip reordering |
 | Color picker | `react-colorful` | Small, no deps |
 | Styling | CSS modules + CSS variables | Editor follows `prefers-color-scheme` |
+| Fonts | Three bundled variable `.woff2` families, self-hosted, registered via the `FontFace` API | Inter, Plus Jakarta Sans, Source Serif 4; latin + latin-ext subsets from Google Fonts, committed to the repo under OFL. Never fetched from a CDN |
 | Testing | Vitest for pure modules (layout, text fitting, model), Playwright for one export smoke test | Render function tested by golden-image comparison at reduced scale |
 
-No runtime network requests of any kind. A CI check greps the build output for `http://` and `https://` in script and CSS and fails if any are found (except source-map comments and license headers).
+No runtime network requests of any kind. A CI check greps the build output for `http://` and `https://` in script, CSS and HTML and fails if any are found (except source-map comments and license headers). HTML is scanned so a `<link>` to a font or script host cannot slip past — which is why the bundled fonts are committed rather than loaded from Google's CDN.
 
 ---
 
@@ -91,10 +92,13 @@ type Project = ProjectMeta & {
 
 type Theme = {
   background: Background
+  font: FontId                     // set-level, like the bezel finish
   headline: TextStyle
   subheadline: TextStyle
   bezel: { finish: BezelFinish; shadow: boolean }
 }
+
+type FontId = 'inter' | 'jakarta' | 'sourceSerif'
 
 type Background =
   | { kind: 'solid'; color: string }                              // hex
@@ -164,7 +168,7 @@ type ScreenshotRef = {
 Rules:
 
 - `overrides` holds only keys the user has explicitly overridden on that slide. Clearing an override deletes the key. The resolved style is `{ ...theme[key], ...overrides[key] }` for text styles and `overrides.background ?? theme.background` for background.
-- Bezel finish and shadow are set-level only. No per-slide override.
+- Bezel finish, shadow and font are set-level only. No per-slide override. The font is deliberately not part of `TextStyle`: an override snapshots the whole resolved style, so a slide whose size had once been customised would otherwise keep the old family when the set's font changed.
 - `device.scale` and both `offsetY` values are clamped by the template's limits at render time as well as in the UI, so a corrupt or hand-edited project cannot produce an off-canvas device. `widget.scale` and `widget.offsetY` are clamped the same way, against the shared widget limits (§6.3).
 - `tilt` and `widget.mode` are options that cut across the template axis: every item stores them, and a template that does not use one ignores it. Switching template therefore never discards either, the same way text survives a switch to `deviceOnly`.
 
@@ -297,7 +301,10 @@ For the tilted template, steps 2–5 happen inside a `save / translate / rotate 
 
 ### 7.3 Text measurement and wrapping
 
-- Font family: `-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`. Canvas uses the same string. The app calls `document.fonts.ready` before the first render.
+- Font family: one of three bundled variable families, chosen per set by `theme.font` — Inter (the default), Plus Jakarta Sans, Source Serif 4. Each resolves to its own family followed by the old system stack, so a face that fails to load still renders. The files are self-hosted `.woff2` (latin and latin-ext subsets), so the same project measures and exports identically on every machine — a system stack resolved to SF Pro on macOS, Segoe UI on Windows and Roboto on Linux, which changed wrapping, auto-shrink and device placement with the operating system.
+- Every family covers weights 400–700, the range the Weight control offers, so no weight is ever synthesised as a faux bold.
+- The faces are declared in `src/assets/fonts/fonts.ts` and registered at startup through the `FontFace` API rather than a stylesheet, so family names, weight ranges, subset ranges and file paths live in exactly one place and cannot drift between CSS and TypeScript. Before the first render the app awaits `fontsReady`, which loads every face and resolves when all have settled. Waiting on `document.fonts.ready` instead would not be enough: it only waits for faces something has actually requested, and a weight used only on the canvas is never requested by the DOM, so the first render would silently measure against the fallback's metrics. A face that arrives after the 1 s ceiling triggers a re-render through the `loadingdone` event.
+- The drawn lock and home placeholders (§6.3) always use Inter, whatever the set's font: they imitate iOS chrome, so their clock and status bar must not move with the project's font either.
 - Wrapping: greedy word wrap using `ctx.measureText`. A single word wider than the slot is broken by character.
 - Line height: 1.15 × font size. Paragraph gap between headline and subheadline: fixed per template.
 - Explicit newlines in the input are honored as hard breaks.
@@ -386,8 +393,9 @@ Sections, top to bottom:
 ### 9.5 Inspector — Theme tab
 
 1. **Background** — kind selector (solid / linear / radial); color picker for solid; for gradients, 2–4 stops with color and offset, angle dial for linear.
-2. **Headline style** and **Subheadline style** — size, weight, color, alignment.
-3. **Bezel** — finish swatches (4), shadow toggle.
+2. **Font** — one tile per bundled family, each tile's sample and name set in that family so the control shows the choice rather than naming it. Applies to every slide in the set.
+3. **Headline style** and **Subheadline style** — size, weight, color, alignment.
+4. **Bezel** — finish swatches (4), shadow toggle.
 
 Changing the theme re-renders all thumbnails.
 
@@ -453,12 +461,14 @@ Database `bezel`, version 1.
 
 ### 10.5 Schema migration
 
-`schemaVersion` is checked on load and older projects are upgraded through a chain of `migrate_N_to_N+1` steps. The current version is 3. An unknown higher version shows "This project was made with a newer version of Bezel."
+`schemaVersion` is checked on load and older projects are upgraded through a chain of `migrate_N_to_N+1` steps. The current version is 4. An unknown higher version shows "This project was made with a newer version of Bezel."
 
 - **v1 → v2:** pairs gain a text slot on each slide. The v1 templates "Text left" (`panoLeftText`) and "Text right" (`panoRightText`) merge into `panorama`. Text from "Text right" and "Tilted right" moves into the right-hand fields, so every existing pair renders as before.
 - **v2 → v3:** Lock, Island and tilt direction stop being templates and become options. `lockActivity` and `island` become `textTop` with `widget.mode` set to the kind they were, keeping the crop and every widget setting; those slides adopt textTop's device width (1080 rather than 1000), so they render slightly larger than before. `panoTiltedRight` becomes `panoTilted` with `tilt: 'right'`, and `tilted` / `panoTilted` gain `tilt: 'left'` — both render exactly as before.
 
-A template id this build does not recognise is replaced on load with the default for that item's width (`textTop` for a slide, `panorama` for a pair) rather than failing the whole project.
+- **v3 → v4:** the font moves from the machine into the project. `theme.font` is added, defaulting to `inter`, so existing projects change face once — they were previously drawn in whatever the OS resolved from a system stack.
+
+A font id this build does not recognise is replaced on load with the default, and a template id this build does not recognise is replaced with the default for that item's width (`textTop` for a slide, `panorama` for a pair) rather than failing the whole project.
 
 Project listings migrate each record for display and skip ones they cannot read. The orphan-asset sweep works from raw stored project ids, so a project this build cannot read never has its screenshots deleted.
 
@@ -476,6 +486,8 @@ Project listings migrate each record for display and skip ones they cannot read.
 | Live Activity mode switched to the other kind | The stored crop no longer matches, so nothing is drawn and detection re-runs for the new kind if there is a screenshot |
 | Headline is empty | Slot is omitted; subheadline moves up into the headline position in `textTop`/`tilted`/pano templates |
 | Both text fields empty on a text template | Device placement uses the position it would have with a one-line headline, so slides stay visually aligned across the set |
+| A bundled font fails to load | One face failing does not block the others; text is drawn in the system stack behind that family, and if the face arrives later `loadingdone` triggers a re-render and the text re-wraps |
+| Text contains a character outside latin and latin-ext | Falls back to the system stack for those glyphs only. Both subsets are preloaded up front, so this does not happen mid-typing for European copy |
 | Screenshot with alpha | Composited over black inside the screen area |
 | Screenshot smaller than screen area | Upscaled with smoothing; inspector shows "Low resolution: W×H, may look blurry" when the stored width is under 1000 px |
 | Very wide image (landscape) dropped | Cover-fit still applies; mismatch warning shown |
@@ -485,14 +497,14 @@ Project listings migrate each record for display and skip ones they cannot read.
 | `canvas.toBlob` returns null | Export aborts with "Export failed, try a smaller set" and the console logs the item id |
 | IndexedDB unavailable (private mode in some browsers) | App runs in memory-only mode with a persistent banner "Autosave is unavailable in this browser mode" |
 | Window narrower than 1024 px | Full-screen notice; the project is not loaded, so nothing is at risk |
-| `document.fonts.ready` never resolves | Render after a 1 s timeout regardless |
+| A bundled face never finishes loading | `fontsReady` resolves after a 1 s timeout regardless and the render proceeds on the fallback stack |
 | User pastes an image (⌘V) with the editor focused | Treated like a drop onto the selected item |
 
 ---
 
 ## 12. Performance budgets
 
-- Initial bundle under 300 KB gzipped, excluding the bezel SVGs (~4 × 40 KB).
+- Initial bundle under 300 KB gzipped, excluding the bezel SVGs (~4 × 40 KB) and the bundled fonts (~280 KB of `.woff2` across three families × two subsets; the browser fetches only the subsets a set's text needs).
 - Full-res render of one slide under 60 ms on an M1 MacBook Air, under 150 ms on a 2019 Intel laptop.
 - Preview updates within one frame after the debounce for typing; sliders track at 60 fps at preview scale.
 - Peak memory for a full 10-slot project with 2868 px-bound screenshots under 400 MB.
@@ -504,6 +516,7 @@ Project listings migrate each record for display and skip ones they cannot read.
 ```
 src/
   app/            routing between Projects screen and Editor, global providers
+  assets/         bezel finishes, bundled font files + registry, licences
   model/          types, defaults, migrations, clamping helpers (pure)
   store/          zustand store, temporal middleware, persistence bridge
   persistence/    idb wrappers, asset import pipeline, GC sweep
@@ -531,7 +544,7 @@ Each row records a decision made during the interview and what was given up.
 |---|---|---|
 | Canvas 2D rendering with one render function for preview and export | DOM + html-to-image; SVG foreignObject | More hand-written layout code and no CSS for the slide itself. In exchange, exact pixel output and no font-rendering surprises between preview and export |
 | Full-res offscreen render, scaled down for preview | Render at preview scale, full-res only on export | Higher CPU per edit, mitigated by debounce and drag-time preview-scale rendering. Guarantees identical wrapping and shrink decisions |
-| System font stack only | Bundled open fonts; Google Fonts | Output differs across operating systems: SF Pro on macOS, Segoe UI on Windows, DejaVu/Roboto on Linux. The same project can export different-looking text on different machines. Accepted for v1 to keep zero-network and zero bundle cost. Bundling one open font is the first candidate for v1.1 |
+| Three bundled open fonts, self-hosted | System font stack; Google Fonts over their CDN | 280 KB of `.woff2` in the bundle, and a curated three rather than any font the user owns. In exchange, one project exports identically on every machine — the system stack resolved to SF Pro on macOS, Segoe UI on Windows and Roboto on Linux, changing wrapping and device placement with the OS. Self-hosting rather than the CDN keeps the zero-network guarantee and means an export never depends on being online |
 | Hand-drawn SVG bezel | Apple Design Resources PNGs | Less photorealistic. Fully redistributable, trivially recolorable, scales without artifacts |
 | Single device model (iPhone 17 Pro approximation) | Multiple models and sizes | Users cannot match a specific phone. One asset keeps the design consistent and the bundle small |
 | 6.9" export only | Also 6.5" and legacy sizes | Relies on App Store Connect downscaling. Users needing pixel-tuned legacy sizes are out of scope |

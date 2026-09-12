@@ -12,8 +12,12 @@ export const fakeMeasure: MeasureFn = (text, font) => {
   return text.length * size * 0.5
 }
 
+// The renderer resolves the theme's font to a stack; tests only need the
+// measurement to be deterministic, and fakeMeasure keys off the px size alone.
+export const TEST_FAMILY = 'Inter, sans-serif'
+
 export function fakeMeasureText(text: string, style: TextStyle, maxWidth: number, maxLines: number) {
-  return fitText(text, style, maxWidth, maxLines, fakeMeasure)
+  return fitText(text, style, maxWidth, maxLines, TEST_FAMILY, fakeMeasure)
 }
 
 export function layoutInput(item: SlideItem, screenshotSize: { w: number; h: number } | null = null): LayoutInput {
