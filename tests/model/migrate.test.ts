@@ -30,7 +30,7 @@ describe('migrateProject', () => {
     const out = migrateProject(rest)
     expect(out.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
   })
-  it('v1 → v2 merges Text left / Text right into Panorama and keeps text on its side', () => {
+  it('v1 → v2 merges Text left / Text right into Panorama and keeps text on its side, then v2 → v3 folds tilt direction into an option', () => {
     const base = { id: 'p', name: 'x', createdAt: 0, updatedAt: 0, schemaVersion: 1, theme: {} }
     const pair = (template: string, headline: string) => ({ kind: 'pair', id: template, template, headline, subheadline: 'sub' })
     const out = migrateProject({
@@ -43,13 +43,46 @@ describe('migrateProject', () => {
         pair('panoTiltedRight', 'TR'),
       ],
     })
-    expect(out.schemaVersion).toBe(2)
+    expect(out.schemaVersion).toBe(3)
     const [slide, left, right, tiltL, tiltR] = out.items as unknown as Array<Record<string, string>>
     expect(slide).toEqual({ kind: 'slide', id: 's', template: 'textTop', headline: 'keep', subheadline: '' })
     expect(left).toMatchObject({ template: 'panorama', headline: 'L', subheadline: 'sub', headlineRight: '', subheadlineRight: '' })
     expect(right).toMatchObject({ template: 'panorama', headline: '', subheadline: '', headlineRight: 'R', subheadlineRight: 'sub' })
-    expect(tiltL).toMatchObject({ template: 'panoTilted', headline: 'TL', headlineRight: '' })
-    expect(tiltR).toMatchObject({ template: 'panoTiltedRight', headline: '', headlineRight: 'TR', subheadlineRight: 'sub' })
+    expect(tiltL).toMatchObject({ template: 'panoTilted', tilt: 'left', headline: 'TL', headlineRight: '' })
+    expect(tiltR).toMatchObject({ template: 'panoTilted', tilt: 'right', headline: '', headlineRight: 'TR', subheadlineRight: 'sub' })
+  })
+  it('v2 → v3 turns the Lock and Island templates into a widget mode on Text top', () => {
+    const base = { id: 'p', name: 'x', createdAt: 0, updatedAt: 0, schemaVersion: 2, theme: {} }
+    const crop = { kind: 'lockActivity', x: 1, y: 2, w: 3, h: 4, radius: 5 }
+    const out = migrateProject({
+      ...base,
+      items: [
+        { kind: 'slide', id: 'a', template: 'lockActivity', widget: { crop, screen: 'placeholder', scale: 1.5, offsetY: 10, notFound: false } },
+        { kind: 'slide', id: 'b', template: 'island' },
+        { kind: 'slide', id: 'c', template: 'tilted' },
+        { kind: 'slide', id: 'd', template: 'textTop' },
+      ],
+    })
+    expect(out.schemaVersion).toBe(3)
+    const [lock, island, tilt, plain] = out.items as unknown as Array<Record<string, unknown>>
+    // The crop and every widget setting survive the fold.
+    expect(lock).toMatchObject({ template: 'textTop', widget: { mode: 'lockActivity', crop, screen: 'placeholder', scale: 1.5, offsetY: 10 } })
+    expect(island).toMatchObject({ template: 'textTop', widget: { mode: 'island' } })
+    expect(tilt).toMatchObject({ template: 'tilted', tilt: 'left' })
+    expect(plain).toMatchObject({ template: 'textTop' })
+    expect(plain!.widget).toBeUndefined()
+  })
+  it('replaces a template id it does not know rather than failing to load', () => {
+    const p = newProject('x')
+    const out = migrateProject({
+      ...p,
+      items: [
+        { ...p.items[0], template: 'somethingRemoved' },
+        { ...p.items[0], id: 'q', kind: 'pair', template: 'alsoGone', headlineRight: '', subheadlineRight: '', textNudgeRight: { offsetY: 0 } },
+      ],
+    })
+    expect(out.items[0]!.template).toBe('textTop')
+    expect(out.items[1]!.template).toBe('panorama')
   })
   it('gives pairs saved without a right text offset the shared one, so nothing moves', () => {
     const p = newProject('x')

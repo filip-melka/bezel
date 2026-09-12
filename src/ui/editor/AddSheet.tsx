@@ -54,23 +54,6 @@ function TileArt({ id }: { id: TemplateId }) {
           </g>
         </svg>
       )
-    case 'lockActivity':
-      return (
-        <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
-          <Bars x={18} y={26} />
-          <Device x={26} y={70} w={80} h={230} />
-          <rect x={10} y={210} width={112} height={44} rx="10" fill="var(--tint)" opacity="0.85" />
-        </svg>
-      )
-    case 'island':
-      return (
-        <svg className={s.tileArt} viewBox="0 0 132 287" aria-hidden>
-          <Bars x={18} y={26} />
-          <Device x={26} y={90} w={80} h={230} />
-          <rect x={16} y={72} width={100} height={36} rx="18" fill="var(--tint)" opacity="0.85" />
-          <rect x={44} y={104} width={44} height={12} rx="6" fill="none" stroke={STROKE} strokeDasharray="3 3" />
-        </svg>
-      )
     case 'panorama':
       return (
         <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
@@ -87,17 +70,6 @@ function TileArt({ id }: { id: TemplateId }) {
           <Bars x={18} y={30} />
           <Bars x={150} y={30} />
           <g transform="rotate(-12 132 260)">
-            <Device x={66} y={110} w={132} h={300} />
-          </g>
-        </svg>
-      )
-    case 'panoTiltedRight':
-      return (
-        <svg className={s.tileArt} viewBox="0 0 264 287" aria-hidden>
-          <Seam />
-          <Bars x={18} y={30} />
-          <Bars x={150} y={30} />
-          <g transform="rotate(12 132 260)">
             <Device x={66} y={110} w={132} h={300} />
           </g>
         </svg>

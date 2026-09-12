@@ -81,7 +81,7 @@ type ProjectMeta = {
   name: string
   createdAt: number   // epoch ms
   updatedAt: number
-  schemaVersion: 2
+  schemaVersion: 3
 }
 
 type Project = ProjectMeta & {
@@ -117,19 +117,20 @@ type SlideItem = Slide | Pair
 type Slide = {
   kind: 'slide'
   id: string
-  template: SlideTemplateId
+  template: SlideTemplateId  // 'textTop' | 'textBottom' | 'deviceOnly' | 'tilted'
   screenshot: ScreenshotRef | null
   headline: string          // may be empty; ignored by deviceOnly
   subheadline: string
   device: { scale: number; offsetY: number }   // scale 0.8..1.25, offsetY in px, clamped by template
   textNudge: { offsetY: number }               // px, clamped by template
+  tilt?: TiltDirection                         // tilted templates only; absent = 'left'
   overrides: Partial<Pick<Theme, 'background' | 'headline' | 'subheadline'>>
 }
 
 type Pair = {
   kind: 'pair'
   id: string
-  template: PairTemplateId  // 'panorama' | 'panoTilted' | 'panoTiltedRight'
+  template: PairTemplateId  // 'panorama' | 'panoTilted'
   screenshot: ScreenshotRef | null
   headline: string          // left slide; either side may be empty
   subheadline: string
@@ -138,13 +139,17 @@ type Pair = {
   device: { scale: number; offsetY: number }
   textNudge: { offsetY: number }       // left slide
   textNudgeRight: { offsetY: number }  // right slide
+  tilt?: TiltDirection                 // panoTilted only; absent = 'left'
   overrides: Partial<Pick<Theme, 'background' | 'headline' | 'subheadline'>> & { headlineRight?: TextStyle; subheadlineRight?: TextStyle }
 }
 
+type TiltDirection = 'left' | 'right'
+
 type WidgetKind = 'lockActivity' | 'island'
+type WidgetMode = 'none' | WidgetKind
 type WidgetCrop = { kind: WidgetKind; x: number; y: number; w: number; h: number; radius: number }  // stored-screenshot px
-type WidgetState = { crop: WidgetCrop | null; screen?: 'screenshot' | 'placeholder'; placeholderColor?: string | null; scale: number | null; offsetY: number; notFound: boolean }
-// Items carry an optional `widget?: WidgetState`; absent on projects saved before Live Activity templates.
+type WidgetState = { mode?: WidgetMode; crop: WidgetCrop | null; screen?: 'screenshot' | 'placeholder'; placeholderColor?: string | null; scale: number | null; offsetY: number; notFound: boolean }
+// Items carry an optional `widget?: WidgetState`; absent, or with mode 'none', means no Live Activity.
 
 type ScreenshotRef = {
   assetId: string
@@ -160,13 +165,16 @@ Rules:
 
 - `overrides` holds only keys the user has explicitly overridden on that slide. Clearing an override deletes the key. The resolved style is `{ ...theme[key], ...overrides[key] }` for text styles and `overrides.background ?? theme.background` for background.
 - Bezel finish and shadow are set-level only. No per-slide override.
-- `device.scale` and both `offsetY` values are clamped by the template's limits at render time as well as in the UI, so a corrupt or hand-edited project cannot produce an off-canvas device.
+- `device.scale` and both `offsetY` values are clamped by the template's limits at render time as well as in the UI, so a corrupt or hand-edited project cannot produce an off-canvas device. `widget.scale` and `widget.offsetY` are clamped the same way, against the shared widget limits (§6.3).
+- `tilt` and `widget.mode` are options that cut across the template axis: every item stores them, and a template that does not use one ignores it. Switching template therefore never discards either, the same way text survives a switch to `deviceOnly`.
 
 ---
 
 ## 6. Templates
 
 Templates are code, not data. Each template is a TypeScript module exporting a `layout(ctx: LayoutInput): LayoutOutput` function plus its limits. Templates never draw; they return geometry that the renderer draws.
+
+A template describes a **layout** and nothing else. Two things that read like layouts are options on top of one instead, available on every template: the tilt direction (§6.1, on the tilted templates) and the Live Activity cut-out (§6.3, on all of them). The single entry point is `layoutItem(input)` in the registry: it calls the template's own `layout`, then merges the widget overlay if the item has one, so no template has to know about the widget beyond leaving room for it.
 
 ```ts
 type LayoutInput = {
@@ -195,6 +203,7 @@ type TemplateDef = {
   name: string
   slots: 1 | 2
   hasText: boolean
+  hasTilt: boolean          // reads item.tilt, so the inspector offers a direction control
   limits: {
     scale: [number, number]
     deviceOffsetY: [number, number]
@@ -216,21 +225,17 @@ type TemplateDef = {
 - Inverse of textTop: the text block is anchored so its bottom sits 200 px above the canvas bottom; the device (frame width 1080 × scale) hangs from the top edge with its bottom edge 140 px above the text. Top of the device is cropped.
 - Limits: scale 0.85–1.15, deviceOffsetY −300…+200, textOffsetY −120…+80.
 
-**lockActivity — "Lock activity"** and **island — "Island"** (Live Activity templates)
-- Both share one layout: headline at top as in textTop, device frame width 1000 × scale, and the Live Activity cut-out drawn again on top with a drop shadow, enlarged around its own centre (default 1.35×, limits 1–2, capped so it keeps 60 px side margins) so it overshoots the bezel. The device is placed 100 px below the text, dropped further only if the enlarged widget would otherwise reach the text. The cut-out is a rounded crop of the same screenshot (see §7.6), so no second asset is stored.
-- Screen behind the widget, per slide (`widget.screen`): `screenshot` shows the screenshot dimmed 35% black; `placeholder` draws a stand-in lock screen (lockActivity) or home screen (island) and anchors the cut-out at the standard iOS position on the 1320×2868 screen: the card full width with 14 pt margins and its bottom at 85.3% of the height; the island 94.8% wide, 1.2% from the top. The home-screen placeholder is deliberately recessive: a blue-to-plum wallpaper with the icon grid, page dots and dock blurred (about 20 px, drawn as offset shadows so every browser renders it the same), and a sharp status bar with the time, signal, Wi-Fi and battery. Each placeholder takes an optional base colour per slide (`widget.placeholderColor`); without one the designed palette is used. A custom colour drives a three-stop gradient with small hue and lightness shifts (lighter and slightly cooler at the top, slightly warmer below), and when the colour is light (relative luminance above 0.4) the icons, status bar and lock-screen text switch to dark ink.
-- Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −80…+120, widgetOffsetY −400…+400.
-
 **deviceOnly — "Device centered"**
 - No text slots. Headline/subheadline fields are hidden in the inspector.
 - Device fully visible, frame height = 2868 − 2 × 180 px padding at scale 1, centered.
 - Limits: scale 0.7–1.0, deviceOffsetY −120…+120, textOffsetY n/a.
 
 **tilted — "Device tilted"**
-- Device rotated −12° (counter-clockwise, top leaning left), anchored so its rotated bounding box's right and bottom edges extend past the canvas. Frame width = 1180 × scale.
-- Headline slot in the top-left region: left padding 120, top padding 200, width 900, max 3 lines. Subheadline below it, max 2 lines.
+- Device rotated 12°, anchored so its rotated bounding box extends past the bottom edge and past the side it leans towards. Frame width = 1180 × scale.
+- Headline slot in the opposite top corner: 120 px from that side, top padding 200, width 900, max 3 lines. Subheadline below it, max 2 lines.
+- `tilt` picks the direction and the two are exact mirrors. `left` (the default, and what every item saved before the option carries) rotates −12° — counter-clockwise, top leaning left — overhangs the right and bottom edges, and puts the text top-left. `right` rotates +12°, overhangs the left and bottom edges, and puts the text top-right.
 - Limits: scale 0.9–1.2, deviceOffsetY −150…+250, textOffsetY −80…+120.
-- Rotation is fixed by the template. The user cannot change the angle in v1.
+- The angle itself is fixed by the template. Only the direction is user-controlled.
 
 ### 6.2 Panoramic pair templates
 
@@ -243,12 +248,21 @@ Every pair has a text slot on each slide: `headline` / `subheadline` for the lef
 - Device frame width = 1500 × scale, centred on x = 1320 (the seam), bottom cropped by the canvas edge. Top edge at y = 720, or 100 px below the lower of the two text blocks if that is further down, plus deviceOffsetY.
 - Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −100…+200.
 
-**panoTilted — "Tilted left"** and **panoTiltedRight — "Tilted right"**
-- Device frame width 1400 × scale, rotated −12° (top leaning left) or +12° (top leaning right) about its centre on the seam, with its rotated bounds overhanging the canvas bottom by 1000 px.
-- Text slots are mirror images, 120 px from the outer edge and 200 px from the seam: left x=120, right x=1520, y=260, width 1000, headline max 3 lines, subheadline max 2.
+**panoTilted — "Tilted panorama"**
+- Device frame width 1400 × scale, rotated about its centre on the seam, with its rotated bounds overhanging the canvas bottom by 1000 px. `tilt` picks the direction: −12° (top leaning left, the default) or +12°.
+- Text slots are mirror images, 120 px from the outer edge and 200 px from the seam, whichever way the device leans: left x=120, right x=1520, y=260, width 1000, headline max 3 lines, subheadline max 2.
 - Limits: scale 0.85–1.1, deviceOffsetY −200…+300, textOffsetY −100…+200.
 
 The background gradient is evaluated over the full 2640-wide canvas, so it is continuous across the seam. Text never crosses the seam.
+
+### 6.3 The Live Activity option
+
+Any template, single or pair, can lift a Live Activity off the screen. `widget.mode` picks which — `none`, `lockActivity` (the lock-screen card) or `island` (the expanded Dynamic Island) — and the rest of `WidgetState` applies to whichever is chosen. The cut-out is a rounded crop of the same screenshot (see §7.6), so no second asset is stored.
+
+- **Geometry.** The crop is mapped into the device's screen area and drawn again on top with a drop shadow, enlarged around its own centre (default 1.35×, limits 1–2, capped so it keeps 60 px side margins on the canvas) so it overshoots the bezel. The overshoot is the emphasis. `widget.offsetY` (−400…+400) nudges it along the device's own vertical axis before any rotation. On a rotated device the cut-out turns with it: the rect is computed in the device's unrotated frame, then rigidly rotated about the device centre, so it stays flat on the screen.
+- **Room for the overshoot.** Templates that anchor the device against their text account for how far the enlarged cut-out pokes past the device's edges: `textTop` and `panorama` drop the device by the top overshoot, `textBottom` lifts it by the bottom overshoot. The gap between text and cut-out is then the same as the gap between text and device would have been. `deviceOnly` and the tilted templates place the device without regard to it; their offset slider covers the rest.
+- **Screen behind the widget** (`widget.screen`): `screenshot` shows the screenshot dimmed 35% black; `placeholder` draws a stand-in lock screen (lockActivity) or home screen (island) and anchors the cut-out at the standard iOS position on the 1320×2868 screen: the card full width with 14 pt margins and its bottom at 85.3% of the height; the island 94.8% wide, 1.2% from the top. The home-screen placeholder is deliberately recessive: a blue-to-plum wallpaper with the icon grid, page dots and dock blurred (about 20 px, drawn as offset shadows so every browser renders it the same), and a sharp status bar with the time, signal, Wi-Fi and battery. Each placeholder takes an optional base colour per slide (`widget.placeholderColor`); without one the designed palette is used. A custom colour drives a three-stop gradient with small hue and lightness shifts (lighter and slightly cooler at the top, slightly warmer below), and when the colour is light (relative luminance above 0.4) the icons, status bar and lock-screen text switch to dark ink.
+- **Crop kind.** `widget.crop.kind` records which kind the stored crop belongs to. A crop that does not match the selected mode is ignored — nothing is drawn and the inspector says "Not detected yet" — until detection runs again, which switching the mode does automatically when there is a screenshot.
 
 ---
 
@@ -294,7 +308,7 @@ If wrapped text exceeds the slot's max line count, reduce the font size by 4 px 
 
 ### 7.6 Live Activity detection
 
-Widget templates locate the Live Activity in the screenshot with pure pixel heuristics, run on import, on switching to a widget template, or on demand:
+Detection locates the Live Activity in the screenshot with pure pixel heuristics, run on import, on choosing a Live Activity mode, or on demand:
 
 - **Expanded Dynamic Island:** flood-fill near-black pixels (all channels < 40) from the pill's expected centre near the top; the bounding box is the crop. Rejected unless it is at least half the width, 4–40% of the height, within the top 10%, and at least 60% filled. The corner radius is measured from the fill: the first row where the black region reaches the box's left edge is one radius below the top.
 - **Lock-screen card:** iOS keeps the card full width with fixed side margins. A column just inside the margin is compared with one in the margin: rows where the inside column is flat and differs from the wallpaper are card rows. The longest plausible run (5–25% of the height, in the lower 35–97%) wins; edges are then refined outward in several columns clear of the rounded corners.
@@ -347,7 +361,7 @@ Three-region layout, all in one screen once a project is open:
 - Vertical list of thumbnails, numbered with the export number(s) they will receive. Pairs show as one thumbnail twice as wide, labelled "3–4".
 - Drag to reorder with `dnd-kit`. A pair moves as one unit.
 - Hover actions: duplicate, delete. Delete does not confirm because undo covers it. Duplicating when the result would exceed 10 slots is disabled with a tooltip.
-- "+ Add" opens a template chooser popover with a preview tile per template. Adding a pair when fewer than 2 slots remain is disabled.
+- "+ Add" opens a layout chooser popover with a preview tile per template. Options that cut across templates — tilt direction, Live Activity — are not in the chooser; they are set on the slide afterwards. Adding a pair when fewer than 2 slots remain is disabled.
 - Slot counter "7 / 10" in the filmstrip footer.
 - Multi-file drop onto the filmstrip appends one `textTop` slide per file, stopping at 10 with a toast "Only the first N screenshots were added, the set is full."
 
@@ -361,12 +375,13 @@ Three-region layout, all in one screen once a project is open:
 
 Sections, top to bottom:
 
-1. **Template** — segmented control of the compatible templates (slides show the three slide templates, pairs show the two pair templates). Changing the template preserves text, screenshot, and clamps offsets to the new limits.
+1. **Template** — segmented control of the compatible layouts (slides show the four slide templates, pairs show the two pair templates). Changing the template preserves text, screenshot, tilt direction and Live Activity, and clamps offsets to the new limits. On a tilted template a **Direction** row follows, Left / Right.
 2. **Screenshot** — thumbnail, file name and dimensions, Replace and Remove buttons, aspect-mismatch warning when applicable.
 3. **Text** — headline textarea (multi-line, max 200 characters), subheadline textarea (max 300). Hidden for `deviceOnly`. Each has an "Override style" toggle; when on, reveals size slider (40–200 px), weight segmented control, color picker, alignment segmented control, and a "Reset to theme" link. A "shrunk to fit" hint appears under the field when reported.
 4. **Device** — scale slider and vertical offset slider, ranges taken from the template limits. "Reset" link.
-5. **Text position** — vertical offset slider within template limits.
-6. **Background override** — toggle; when on, shows the same background editor as the Theme tab, scoped to this slide.
+5. **Live Activity** — a Lift control (None / Lock / Island), present on every template. With a kind chosen it reveals the crop status row with Detect and Adjust…, the Screen control, the placeholder Colour row, and Scale and Offset sliders (§6.3).
+6. **Text position** — vertical offset slider within template limits.
+7. **Background override** — toggle; when on, shows the same background editor as the Theme tab, scoped to this slide.
 
 ### 9.5 Inspector — Theme tab
 
@@ -438,9 +453,12 @@ Database `bezel`, version 1.
 
 ### 10.5 Schema migration
 
-`schemaVersion` is checked on load and older projects are upgraded through a chain of `migrate_N_to_N+1` steps. The current version is 2. An unknown higher version shows "This project was made with a newer version of Bezel."
+`schemaVersion` is checked on load and older projects are upgraded through a chain of `migrate_N_to_N+1` steps. The current version is 3. An unknown higher version shows "This project was made with a newer version of Bezel."
 
 - **v1 → v2:** pairs gain a text slot on each slide. The v1 templates "Text left" (`panoLeftText`) and "Text right" (`panoRightText`) merge into `panorama`. Text from "Text right" and "Tilted right" moves into the right-hand fields, so every existing pair renders as before.
+- **v2 → v3:** Lock, Island and tilt direction stop being templates and become options. `lockActivity` and `island` become `textTop` with `widget.mode` set to the kind they were, keeping the crop and every widget setting; those slides adopt textTop's device width (1080 rather than 1000), so they render slightly larger than before. `panoTiltedRight` becomes `panoTilted` with `tilt: 'right'`, and `tilted` / `panoTilted` gain `tilt: 'left'` — both render exactly as before.
+
+A template id this build does not recognise is replaced on load with the default for that item's width (`textTop` for a slide, `panorama` for a pair) rather than failing the whole project.
 
 Project listings migrate each record for display and skip ones they cannot read. The orphan-asset sweep works from raw stored project ids, so a project this build cannot read never has its screenshots deleted.
 
@@ -454,6 +472,8 @@ Project listings migrate each record for display and skip ones they cannot read.
 | Only 1 slot left, user wants a pair | Pair templates disabled in chooser with tooltip "Needs 2 free slots" |
 | Converting a pair to a slide or vice versa | Not supported. Template control only shows same-slot-width templates |
 | Switching template `textTop` → `deviceOnly` | Text is preserved in the model, hidden in the UI, and restored if switched back |
+| Switching template with a Live Activity or tilt direction set | Both are options, not template state: they are preserved and keep applying wherever the new template uses them |
+| Live Activity mode switched to the other kind | The stored crop no longer matches, so nothing is drawn and detection re-runs for the new kind if there is a screenshot |
 | Headline is empty | Slot is omitted; subheadline moves up into the headline position in `textTop`/`tilted`/pano templates |
 | Both text fields empty on a text template | Device placement uses the position it would have with a one-line headline, so slides stay visually aligned across the set |
 | Screenshot with alpha | Composited over black inside the screen area |
@@ -487,7 +507,7 @@ src/
   model/          types, defaults, migrations, clamping helpers (pure)
   store/          zustand store, temporal middleware, persistence bridge
   persistence/    idb wrappers, asset import pipeline, GC sweep
-  templates/      one module per template + registry
+  templates/      one module per template, the widget option, + registry
   render/         renderItem, text wrapping, auto-shrink, background, bezel drawing
   assets/bezel/   frame SVG source and finish definitions
   ui/
@@ -538,7 +558,7 @@ None blocking. Items deferred to after v1, in suggested priority order:
 3. Additional templates: text bottom / device top; two devices side by side; device with a caption bubble.
 4. 6.5" export, produced by re-rendering the same layout at 1284 × 2778.
 5. Localization: per-locale text variants and per-locale export folders.
-6. Per-pair or per-slide rotation control for the tilted template.
+6. A free rotation angle for the tilted templates; the direction is already an option.
 
 ---
 

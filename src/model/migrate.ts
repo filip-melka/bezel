@@ -1,3 +1,4 @@
+import { DEFAULT_PAIR_TEMPLATE, DEFAULT_SLIDE_TEMPLATE, isTemplateId } from '../templates/registry'
 import type { Project } from './types'
 
 export class MigrationError extends Error {
@@ -9,7 +10,7 @@ export class MigrationError extends Error {
   }
 }
 
-export const CURRENT_SCHEMA_VERSION = 2
+export const CURRENT_SCHEMA_VERSION = 3
 
 type Raw = Record<string, unknown>
 type Migration = (raw: Raw) => Raw
@@ -31,12 +32,35 @@ function migratePairV1toV2(it: unknown): unknown {
     : { ...item, template, headline, subheadline, headlineRight: '', subheadlineRight: '' }
 }
 
+// v2 → v3: Lock / Island stop being templates and tilt direction stops being a
+// template id. Both become options, so the two Live Activity templates fold
+// into Text top with their widget mode set, and Tilted right folds into the one
+// tilted pair with `tilt: 'right'`. Every item renders as close to before as
+// the shared geometry allows.
+function migrateItemV2toV3(it: unknown): unknown {
+  if (typeof it !== 'object' || it === null) return it
+  const item = it as Raw
+  const template = item.template
+  if (template === 'lockActivity' || template === 'island') {
+    const widget = typeof item.widget === 'object' && item.widget !== null ? (item.widget as Raw) : {}
+    return { ...item, template: 'textTop', widget: { ...widget, mode: template } }
+  }
+  if (template === 'panoTiltedRight') return { ...item, template: 'panoTilted', tilt: 'right' }
+  if (template === 'tilted' || template === 'panoTilted') return { ...item, tilt: 'left' }
+  return item
+}
+
 // Chain of migrate_N_to_N+1 steps, indexed by the version they migrate FROM.
 const MIGRATIONS: Record<number, Migration> = {
   1: (raw) => ({
     ...raw,
     schemaVersion: 2,
     items: Array.isArray(raw.items) ? raw.items.map(migratePairV1toV2) : raw.items,
+  }),
+  2: (raw) => ({
+    ...raw,
+    schemaVersion: 3,
+    items: Array.isArray(raw.items) ? raw.items.map(migrateItemV2toV3) : raw.items,
   }),
 }
 
@@ -75,14 +99,21 @@ export function tryMigrateProject(input: unknown): Project | null {
 }
 
 // Fills fields added within the current schema version so older records of the
-// same version load cleanly. A pair saved before its sides had separate text
-// positions gets a right offset equal to the shared one, so nothing moves.
+// same version load cleanly, and replaces any template id this build does not
+// know with the default for that item's width — the renderer would otherwise
+// throw on a missing template rather than degrade. A pair saved before its
+// sides had separate text positions gets a right offset equal to the shared
+// one, so nothing moves.
 function normalize(raw: Raw): Raw {
   if (!Array.isArray(raw.items)) return raw
   let changed = false
   const items = raw.items.map((it: unknown) => {
     if (typeof it !== 'object' || it === null) return it
-    const item = it as Raw
+    let item = it as Raw
+    if (!isTemplateId(item.template)) {
+      changed = true
+      item = { ...item, template: item.kind === 'pair' ? DEFAULT_PAIR_TEMPLATE : DEFAULT_SLIDE_TEMPLATE }
+    }
     if (item.kind !== 'pair' || (typeof item.textNudgeRight === 'object' && item.textNudgeRight !== null)) return item
     changed = true
     const left = item.textNudge as { offsetY?: unknown } | undefined

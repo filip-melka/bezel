@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 import { resolveTheme } from '../../../model/defaults'
-import type { SlideItem, TemplateId, Theme } from '../../../model/types'
+import type { SlideItem, TemplateId, Theme, TiltDirection } from '../../../model/types'
 import { aspectMismatch } from '../../../render/renderItem'
 import { PAIR_TEMPLATE_IDS, SHORT_NAMES, SLIDE_TEMPLATE_IDS, TEMPLATES, templateFor } from '../../../templates/registry'
-import { clearOverride, setOverride, setScreenshot, setTemplate } from '../../../store/actions'
+import { clearOverride, setOverride, setScreenshot, setTemplate, setTilt } from '../../../store/actions'
 import { useUiStore } from '../../../store/uiStore'
 import { Button } from '../../controls/Button'
 import { InsetList, Row, Stack } from '../../controls/InsetList'
@@ -15,7 +15,6 @@ import { BackgroundEditor } from './BackgroundEditor'
 import { DeviceSection } from './DeviceSection'
 import { TextSection } from './TextSection'
 import { WidgetSection } from './WidgetSection'
-import { detectWidgetForItem } from '../../../widgets/run'
 import s from '../editor.module.css'
 
 export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
@@ -41,14 +40,25 @@ export function SlideTab({ item, theme }: { item: SlideItem; theme: Theme }) {
         <Segmented<TemplateId>
           ariaLabel="Template"
           value={item.template}
-          columns={ids.length > 4 ? 3 : undefined}
-          onChange={(t) => {
-            setTemplate(item.id, t)
-            const kind = TEMPLATES[t].widgetKind
-            if (kind && item.screenshot && item.widget?.crop?.kind !== kind) void detectWidgetForItem(item.id)
-          }}
+          onChange={(t) => setTemplate(item.id, t)}
           options={ids.map((id) => ({ value: id, label: SHORT_NAMES[id], title: TEMPLATES[id].name }))}
         />
+        {def.hasTilt ? (
+          <InsetList>
+            <Row label="Direction">
+              <Segmented<TiltDirection>
+                ariaLabel="Tilt direction"
+                className={s.segFill}
+                value={item.tilt ?? 'left'}
+                onChange={(t) => setTilt(item.id, t)}
+                options={[
+                  { value: 'left', label: 'Left', title: 'Device leans left, text in the opposite corner' },
+                  { value: 'right', label: 'Right', title: 'Device leans right, text in the opposite corner' },
+                ]}
+              />
+            </Row>
+          </InsetList>
+        ) : null}
       </section>
 
       <section className={s.section} aria-label="Screenshot">

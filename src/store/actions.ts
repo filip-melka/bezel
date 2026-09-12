@@ -12,6 +12,7 @@ import type {
   TextStyle,
   TextStyleKey,
   Theme,
+  TiltDirection,
   WidgetState,
 } from '../model/types'
 import { getTemplate } from '../templates/registry'
@@ -183,6 +184,11 @@ export function setTextNudge(id: string, offsetY: number, side: 'left' | 'right'
   })
 }
 
+// Lean of a tilted template. Stored on every item; the other templates ignore it.
+export function setTilt(id: string, tilt: TiltDirection): void {
+  updateItem(id, (item) => (item.tilt === tilt ? item : { ...item, tilt }))
+}
+
 export function resetDevice(id: string): void {
   updateItem(id, (item) => ({ ...item, device: { scale: 1, offsetY: 0 } }))
 }
@@ -235,8 +241,8 @@ export function setBezel(patch: Partial<Theme['bezel']>): void {
   setTheme((t) => ({ ...t, bezel: { ...t.bezel, ...patch } }))
 }
 
-// Live Activity cut-out state. Missing on v1 projects, so patches merge over
-// the default.
+// Live Activity cut-out state. Missing on projects saved before the option
+// existed, so patches merge over the default.
 export function setWidget(id: string, patch: Partial<WidgetState>): void {
   updateItem(id, (item) => ({ ...item, widget: { ...defaultWidget(), ...item.widget, ...patch } }))
 }

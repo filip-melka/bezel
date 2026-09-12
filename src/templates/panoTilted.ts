@@ -1,5 +1,5 @@
 import { FRAME_ASPECT } from '../render/bezel'
-import { clampNum, layoutPairText, rotatedBounds } from './common'
+import { clampNum, layoutPairText, rotatedBounds, tiltOf } from './common'
 import type { LayoutInput, LayoutOutput, TemplateDef, TemplateLimits } from './types'
 
 export const PANO_TILT_LIMITS: TemplateLimits = {
@@ -8,11 +8,10 @@ export const PANO_TILT_LIMITS: TemplateLimits = {
   textOffsetY: [-100, 200],
 }
 
-// Shared geometry for the tilted panoramas: a 1400 px-wide device rotated
-// about the seam and overhanging the bottom, with a text slot on each slide.
-// The slots are mirror images: 120 px from the outer edge, 200 px from the
-// seam. Only the tilt direction differs between the two templates.
-export function layoutPanoTilted(input: LayoutInput, tilt: 'left' | 'right'): LayoutOutput {
+// A 1400 px-wide device rotated about the seam and overhanging the bottom, with
+// a text slot on each slide. The slots are mirror images: 120 px from the outer
+// edge, 200 px from the seam. Only the device's lean changes with the direction.
+function layoutPanoTilted(input: LayoutInput): LayoutOutput {
   const { item, canvasW, canvasH } = input
   const half = canvasW / 2
   const text = layoutPairText(input, {
@@ -27,7 +26,7 @@ export function layoutPanoTilted(input: LayoutInput, tilt: 'left' | 'right'): La
   })
   const scale = clampNum(item.device.scale, PANO_TILT_LIMITS.scale)
   const offsetY = clampNum(item.device.offsetY, PANO_TILT_LIMITS.deviceOffsetY)
-  const rotation = tilt === 'left' ? -12 : 12
+  const rotation = tiltOf(item) === 'right' ? 12 : -12
   const w = 1400 * scale
   const h = w / FRAME_ASPECT
   const bounds = rotatedBounds(w, h, rotation)
@@ -45,20 +44,11 @@ export function layoutPanoTilted(input: LayoutInput, tilt: 'left' | 'right'): La
 
 export const panoTilted: TemplateDef = {
   id: 'panoTilted',
-  name: 'Tilted left',
-  description: 'Two slides. Device tilted left across the seam, text on either side.',
+  name: 'Tilted panorama',
+  description: 'Two slides. Device tilted across the seam, text on either side.',
   slots: 2,
   hasText: true,
+  hasTilt: true,
   limits: PANO_TILT_LIMITS,
-  layout: (input) => layoutPanoTilted(input, 'left'),
-}
-
-export const panoTiltedRight: TemplateDef = {
-  id: 'panoTiltedRight',
-  name: 'Tilted right',
-  description: 'Two slides. Device tilted right across the seam, text on either side.',
-  slots: 2,
-  hasText: true,
-  limits: PANO_TILT_LIMITS,
-  layout: (input) => layoutPanoTilted(input, 'right'),
+  layout: layoutPanoTilted,
 }

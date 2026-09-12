@@ -1,7 +1,13 @@
 import { FRAME_ASPECT } from '../render/bezel'
 import { LINE_HEIGHT } from '../render/fonts'
-import type { TextStyle } from '../model/types'
+import type { SlideItem, TextStyle, TiltDirection } from '../model/types'
 import type { DeviceBox, LayoutInput, TemplateLimits, TextBlock } from './types'
+
+// Lean of a tilted template. Items saved before the direction was an option
+// carry no value and read as 'left', the only direction those templates had.
+export function tiltOf(item: SlideItem): TiltDirection {
+  return item.tilt === 'right' ? 'right' : 'left'
+}
 
 export function clampNum(v: number, [lo, hi]: [number, number]): number {
   if (Number.isNaN(v)) return lo

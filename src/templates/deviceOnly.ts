@@ -8,6 +8,7 @@ export const deviceOnly: TemplateDef = {
   description: 'The framed screenshot, centred and fully visible.',
   slots: 1,
   hasText: false,
+  hasTilt: false,
   limits: {
     scale: [0.7, 1.0],
     deviceOffsetY: [-120, 120],

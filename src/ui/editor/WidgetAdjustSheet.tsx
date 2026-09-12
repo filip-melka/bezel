@@ -4,7 +4,7 @@ import { lookupAsset } from '../../persistence/assets'
 import { setWidget } from '../../store/actions'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
-import { templateFor } from '../../templates/registry'
+import { widgetKindOf } from '../../templates/widget'
 import { detectWidgetForItem } from '../../widgets/run'
 import { Button } from '../controls/Button'
 import { Sheet } from '../controls/Sheet'
@@ -44,7 +44,7 @@ export function WidgetAdjustSheet() {
     return () => cancelAnimationFrame(id)
   }, [open])
   const drag = useRef<Drag | null>(null)
-  const kind = item ? templateFor(item).widgetKind : undefined
+  const kind = item ? widgetKindOf(item) : null
   const img = item?.screenshot ? lookupAsset(item.screenshot.assetId) : undefined
 
   // Seed local crop from the item when the sheet opens.

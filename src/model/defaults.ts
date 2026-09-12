@@ -44,7 +44,7 @@ export function defaultTheme(): Theme {
 }
 
 export function defaultWidget(): WidgetState {
-  return { crop: null, screen: 'screenshot', scale: null, offsetY: 0, notFound: false }
+  return { mode: 'none', crop: null, screen: 'screenshot', scale: null, offsetY: 0, notFound: false }
 }
 
 export function newSlide(template: SlideTemplateId = 'textTop'): Slide {
@@ -85,7 +85,7 @@ export function newProject(name: string): Project {
     name,
     createdAt: now,
     updatedAt: now,
-    schemaVersion: 2,
+    schemaVersion: 3,
     theme: defaultTheme(),
     items: [newSlide('textTop')],
   }

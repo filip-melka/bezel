@@ -1,5 +1,6 @@
 import { clampNum, deviceFromWidth, layoutPairText } from './common'
 import type { TemplateDef, TemplateLimits } from './types'
+import { widgetOvershoot } from './widget'
 
 export const PANO_LIMITS: TemplateLimits = {
   scale: [0.85, 1.1],
@@ -20,6 +21,7 @@ export const panorama: TemplateDef = {
   description: 'Two slides. Device across the seam, text on either side.',
   slots: 2,
   hasText: true,
+  hasTilt: false,
   limits: PANO_LIMITS,
   layout(input) {
     const { item, canvasW } = input
@@ -36,8 +38,10 @@ export const panorama: TemplateDef = {
     })
     const scale = clampNum(item.device.scale, PANO_LIMITS.scale)
     const offsetY = clampNum(item.device.offsetY, PANO_LIMITS.deviceOffsetY)
-    const top = Math.max(DEVICE_MIN_TOP, text.bottom + GAP_BELOW_TEXT) + offsetY
-    const device = deviceFromWidth(1500 * scale, half, top)
+    const w = 1500 * scale
+    const clear = widgetOvershoot(input, w).top
+    const top = Math.max(DEVICE_MIN_TOP, text.bottom + GAP_BELOW_TEXT) + clear + offsetY
+    const device = deviceFromWidth(w, half, top)
     return {
       device,
       headline: text.left.headline,

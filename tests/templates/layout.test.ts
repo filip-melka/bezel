@@ -3,9 +3,9 @@ import { FRAME_ASPECT } from '../../src/render/bezel'
 import { LINE_HEIGHT } from '../../src/render/fonts'
 import { rotatedBounds } from '../../src/templates/common'
 import { mapRect, screenMapping, screenshotMapping } from '../../src/render/geometry'
-import { lockCardAnchor } from '../../src/templates/widgetCommon'
+import { lockCardAnchor } from '../../src/templates/widget'
 import { TEMPLATES } from '../../src/templates/registry'
-import { layoutInput, newPair, newSlide } from '../helpers'
+import { layoutInput, layoutOf, newPair, newSlide } from '../helpers'
 
 describe('textTop', () => {
   it('places the device 140 px below the text and centred', () => {
@@ -81,6 +81,28 @@ describe('tilted', () => {
     const out = TEMPLATES.tilted.layout(layoutInput(s))
     expect(out.headline?.x).toBe(120)
     expect(out.headline?.w).toBe(900)
+  })
+  it('mirrors device and text slot when tilted right', () => {
+    const s = newSlide('tilted')
+    s.headline = 'Head'
+    s.tilt = 'right'
+    const out = TEMPLATES.tilted.layout(layoutInput(s))
+    const d = out.device!
+    expect(d.rotation).toBe(12)
+    expect(out.headline?.x).toBe(1320 - 120 - 900)
+    expect(out.headline?.w).toBe(900)
+    const b = rotatedBounds(d.w, d.h, d.rotation)
+    const cx = d.x + d.w / 2
+    expect(cx - b.w / 2).toBeLessThan(0)
+    expect(d.y + d.h / 2 + b.h / 2).toBeGreaterThan(2868)
+  })
+  it('is an exact mirror of the left tilt', () => {
+    const left = TEMPLATES.tilted.layout(layoutInput(newSlide('tilted')))
+    const r = newSlide('tilted')
+    r.tilt = 'right'
+    const right = TEMPLATES.tilted.layout(layoutInput(r))
+    expect(right.device!.x + right.device!.w / 2).toBeCloseTo(1320 - (left.device!.x + left.device!.w / 2))
+    expect(right.device!.y).toBeCloseTo(left.device!.y)
   })
 })
 
@@ -172,10 +194,12 @@ describe('textBottom', () => {
   })
 })
 
-describe('tilted panoramas', () => {
-  it('rotate opposite ways and centre on the seam', () => {
+describe('tilted panorama', () => {
+  it('leans the way the direction option says and centres on the seam', () => {
     const l = TEMPLATES.panoTilted.layout(layoutInput(newPair('panoTilted')))
-    const r = TEMPLATES.panoTiltedRight.layout(layoutInput(newPair('panoTiltedRight')))
+    const rp = newPair('panoTilted')
+    rp.tilt = 'right'
+    const r = TEMPLATES.panoTilted.layout(layoutInput(rp))
     expect(l.device?.rotation).toBe(-12)
     expect(r.device?.rotation).toBe(12)
     for (const d of [l.device!, r.device!]) {
@@ -184,12 +208,18 @@ describe('tilted panoramas', () => {
       expect(d.y + d.h / 2 + b.h / 2).toBeGreaterThan(2868)
     }
   })
-  it('take text on both slides in mirrored slots', () => {
-    for (const id of ['panoTilted', 'panoTiltedRight'] as const) {
-      const p = newPair(id)
+  it('defaults to leaning left when no direction is stored', () => {
+    const p = newPair('panoTilted')
+    delete p.tilt
+    expect(TEMPLATES.panoTilted.layout(layoutInput(p)).device?.rotation).toBe(-12)
+  })
+  it('takes text on both slides in mirrored slots, whichever way it leans', () => {
+    for (const tilt of ['left', 'right'] as const) {
+      const p = newPair('panoTilted')
+      p.tilt = tilt
       p.headline = 'L'
       p.headlineRight = 'R'
-      const out = TEMPLATES[id].layout(layoutInput(p))
+      const out = TEMPLATES.panoTilted.layout(layoutInput(p))
       expect(out.headline!.x).toBe(120)
       expect(1320 - (out.headline!.x + out.headline!.w)).toBe(200)
       expect(out.headlineRight!.x - 1320).toBe(200)
@@ -198,75 +228,144 @@ describe('tilted panoramas', () => {
   })
 })
 
-describe('widget templates', () => {
+describe('Live Activity option', () => {
   const crop = { kind: 'lockActivity' as const, x: 42, y: 1880, w: 1095, h: 300, radius: 70 }
-  it('lockActivity enlarges the card around its own centre', () => {
-    const s = newSlide('lockActivity')
-    s.widget = { crop, scale: null, offsetY: 0, notFound: false }
-    const out = TEMPLATES.lockActivity.layout(layoutInput(s, { w: 1179, h: 2556 }))
+  const shot = { w: 1179, h: 2556 }
+  const lockSlide = (template: 'textTop' | 'textBottom' | 'deviceOnly' | 'tilted' = 'textTop') => {
+    const s = newSlide(template)
+    s.widget = { mode: 'lockActivity', crop, scale: null, offsetY: 0, notFound: false }
+    return s
+  }
+
+  it('enlarges the card around its own centre', () => {
+    const out = layoutOf(lockSlide(), shot)
     const w = out.widget!
     const d = out.device!
     // Mapped crop centre is inside the device's screen area; box is 1.35× it.
-    const m = screenshotMapping(d, 1179, 2556)
-    const r = mapRect(m, crop)
-    expect(w.box.w).toBeCloseTo(r.w * 1.35)
+    const r = mapRect(screenshotMapping(d, shot.w, shot.h), crop)
+    // 1.35×, or the side-margin cap, whichever is smaller.
+    expect(w.box.w).toBeCloseTo(Math.min(r.w * 1.35, 1320 - 120))
     expect(w.box.x + w.box.w / 2).toBeCloseTo(r.x + r.w / 2)
     expect(w.box.y + w.box.h / 2).toBeCloseTo(r.y + r.h / 2)
+    expect(w.rotation).toBe(0)
     expect(w.ghost).toBeNull()
     expect(out.screenDim).toBeGreaterThan(0)
   })
-  it('lockActivity ignores a crop of the wrong kind and needs a screenshot', () => {
-    const s = newSlide('lockActivity')
-    s.widget = { crop: { ...crop, kind: 'island' }, scale: null, offsetY: 0, notFound: false }
-    expect(TEMPLATES.lockActivity.layout(layoutInput(s, { w: 1179, h: 2556 })).widget).toBeNull()
-    s.widget.crop = crop
-    expect(TEMPLATES.lockActivity.layout(layoutInput(s, null)).widget).toBeNull()
+  it('is absent until a mode is chosen', () => {
+    const s = newSlide('textTop')
+    s.widget = { mode: 'none', crop, scale: null, offsetY: 0, notFound: false }
+    const out = layoutOf(s, shot)
+    expect(out.widget ?? null).toBeNull()
+    expect(out.screenDim ?? 0).toBe(0)
+    // An item saved before the option existed has no widget at all.
+    expect(layoutOf(newSlide('textTop'), shot).widget ?? null).toBeNull()
   })
-  it('island enlarges in place like the lock card, capped to the canvas width', () => {
-    const s = newSlide('island')
+  it('ignores a crop of the wrong kind and needs a screenshot', () => {
+    const s = lockSlide()
+    s.widget!.crop = { ...crop, kind: 'island' }
+    expect(layoutOf(s, shot).widget).toBeNull()
+    s.widget!.crop = crop
+    expect(layoutOf(s, null).widget).toBeNull()
+  })
+  it('rides along on every single-slide layout', () => {
+    for (const template of ['textTop', 'textBottom', 'deviceOnly', 'tilted'] as const) {
+      const out = layoutOf(lockSlide(template), shot)
+      const d = out.device!
+      const w = out.widget!
+      expect(w.rotation).toBe(d.rotation)
+      // The cut-out sits on the device: its centre is within the frame bounds.
+      const cx = w.box.x + w.box.w / 2
+      const cy = w.box.y + w.box.h / 2
+      const b = rotatedBounds(d.w, d.h, d.rotation)
+      expect(Math.abs(cx - (d.x + d.w / 2))).toBeLessThanOrEqual(b.w / 2)
+      expect(Math.abs(cy - (d.y + d.h / 2))).toBeLessThanOrEqual(b.h / 2)
+    }
+  })
+  it('turns with a tilted device', () => {
+    const s = lockSlide('tilted')
+    const out = layoutOf(s, shot)
+    expect(out.widget!.rotation).toBe(-12)
+    const r = newSlide('tilted')
+    r.tilt = 'right'
+    r.widget = s.widget
+    expect(layoutOf(r, shot).widget!.rotation).toBe(12)
+  })
+  it('rides along on a pair across the seam', () => {
+    const p = newPair('panorama')
+    p.widget = { mode: 'lockActivity', crop, scale: null, offsetY: 0, notFound: false }
+    const out = layoutOf(p, shot)
+    const r = mapRect(screenshotMapping(out.device!, shot.w, shot.h), crop)
+    expect(out.widget!.box.x + out.widget!.box.w / 2).toBeCloseTo(r.x + r.w / 2)
+    // Centred on the seam of the 2640-wide canvas, like the device.
+    expect(out.widget!.box.x + out.widget!.box.w / 2).toBeCloseTo(1320)
+  })
+  it('enlarges the island in place, capped to the canvas width', () => {
+    const s = newSlide('textTop')
     const ic = { kind: 'island' as const, x: 40, y: 33, w: 1099, h: 367, radius: 73 }
-    s.widget = { crop: ic, scale: 2, offsetY: 0, notFound: false }
-    const out = TEMPLATES.island.layout(layoutInput(s, { w: 1179, h: 2556 }))
+    s.widget = { mode: 'island', crop: ic, scale: 2, offsetY: 0, notFound: false }
+    const out = layoutOf(s, shot)
     const w = out.widget!
-    const d = out.device!
-    const r = mapRect(screenshotMapping(d, 1179, 2556), ic)
+    const r = mapRect(screenshotMapping(out.device!, shot.w, shot.h), ic)
     expect(w.box.x + w.box.w / 2).toBeCloseTo(r.x + r.w / 2)
     expect(w.box.y + w.box.h / 2).toBeCloseTo(r.y + r.h / 2)
     expect(w.box.w).toBeCloseTo(1320 - 120)
     expect(w.ghost).toBeNull()
-    // The enlarged island clears the headline area by the template gap.
-    expect(w.box.y).toBeGreaterThanOrEqual(200 + 96 * 1.15 + 100 - 1)
+    // The device dropped so the enlarged island clears the headline by the
+    // template's own gap.
+    expect(w.box.y).toBeGreaterThanOrEqual(200 + 96 * LINE_HEIGHT + 140 - 1)
+  })
+  it('lifts the device further on textBottom so the card clears the text below', () => {
+    // Tall copy, so the device already sits against the text and the widget's
+    // overshoot is what moves it. The card is narrow enough that the
+    // side-margin cap leaves the full 2×, so it runs past the device's bottom.
+    const tall = (withWidget: boolean) => {
+      const s = newSlide('textBottom')
+      s.headline = Array.from({ length: 12 }, () => 'word').join(' ')
+      s.subheadline = Array.from({ length: 12 }, () => 'word').join(' ')
+      s.device.scale = 1.15
+      if (withWidget) {
+        s.widget = { mode: 'lockActivity', crop: { ...crop, x: 380, y: 2350, w: 400, h: 200, radius: 40 }, scale: 2, offsetY: 0, notFound: false }
+      }
+      return s
+    }
+    const plain = layoutOf(tall(false), shot)
+    const out = layoutOf(tall(true), shot)
+    expect(out.device!.y).toBeLessThan(plain.device!.y)
+    expect(out.widget!.box.y + out.widget!.box.h).toBeCloseTo(out.headline!.y - 140)
   })
   it('placeholder screen anchors the cut-out at the standard iOS position', () => {
-    const s = newSlide('lockActivity')
-    s.widget = { crop, screen: 'placeholder', scale: 1, offsetY: 0, notFound: false }
-    const out = TEMPLATES.lockActivity.layout(layoutInput(s, { w: 1179, h: 2556 }))
+    const s = lockSlide()
+    s.widget = { ...s.widget!, screen: 'placeholder', scale: 1 }
+    const out = layoutOf(s, shot)
     expect(out.screenPlaceholder).toBe('lock')
     expect(out.screenDim).toBe(0)
-    const d = out.device!
-    const m = screenMapping(d)
-    const expected = mapRect(m, lockCardAnchor(crop.w / crop.h))
+    const expected = mapRect(screenMapping(out.device!), lockCardAnchor(crop.w / crop.h))
     expect(out.widget!.box.x).toBeCloseTo(expected.x)
     expect(out.widget!.box.y).toBeCloseTo(expected.y)
     expect(out.widget!.box.w).toBeCloseTo(expected.w)
     // Works without a screenshot size too, since the anchor does not need one.
-    expect(TEMPLATES.lockActivity.layout(layoutInput(s, null)).widget).not.toBeNull()
+    expect(layoutOf(s, null).widget).not.toBeNull()
   })
 })
 
 describe('placeholder colour', () => {
   const crop = { kind: 'lockActivity' as const, x: 42, y: 1880, w: 1095, h: 300, radius: 70 }
   it('passes the custom colour through only when the placeholder is on', () => {
-    const s = newSlide('lockActivity')
-    s.widget = { crop, screen: 'placeholder', placeholderColor: '#0b6e4f', scale: null, offsetY: 0, notFound: false }
-    expect(TEMPLATES.lockActivity.layout(layoutInput(s, null)).screenPlaceholderColor).toBe('#0b6e4f')
+    const s = newSlide('textTop')
+    s.widget = { mode: 'lockActivity', crop, screen: 'placeholder', placeholderColor: '#0b6e4f', scale: null, offsetY: 0, notFound: false }
+    expect(layoutOf(s, null).screenPlaceholderColor).toBe('#0b6e4f')
     s.widget.screen = 'screenshot'
-    expect(TEMPLATES.lockActivity.layout(layoutInput(s, { w: 1179, h: 2556 })).screenPlaceholderColor).toBeNull()
+    expect(layoutOf(s, { w: 1179, h: 2556 }).screenPlaceholderColor).toBeNull()
   })
   it('defaults to null so the designed palette is used', () => {
-    const s = newSlide('island')
-    s.widget = { crop: null, screen: 'placeholder', scale: null, offsetY: 0, notFound: false }
-    expect(TEMPLATES.island.layout(layoutInput(s, null)).screenPlaceholderColor).toBeNull()
+    const s = newSlide('textTop')
+    s.widget = { mode: 'island', crop: null, screen: 'placeholder', scale: null, offsetY: 0, notFound: false }
+    expect(layoutOf(s, null).screenPlaceholderColor).toBeNull()
+  })
+  it('is not drawn at all without a mode', () => {
+    const s = newSlide('textTop')
+    s.widget = { mode: 'none', crop: null, screen: 'placeholder', scale: null, offsetY: 0, notFound: false }
+    expect(layoutOf(s, null).screenPlaceholder ?? null).toBeNull()
   })
 })
 
@@ -304,7 +403,7 @@ describe('per-side text styles on pairs', () => {
 
 describe('per-side text position on pairs', () => {
   it('offsets each slide by its own nudge', () => {
-    for (const id of ['panorama', 'panoTilted', 'panoTiltedRight'] as const) {
+    for (const id of ['panorama', 'panoTilted'] as const) {
       const p = newPair(id)
       p.headline = 'L'
       p.headlineRight = 'R'

@@ -5,7 +5,7 @@ export type ProjectMeta = {
   name: string
   createdAt: number
   updatedAt: number
-  schemaVersion: 2
+  schemaVersion: 3
 }
 
 export type Project = ProjectMeta & {
@@ -39,9 +39,13 @@ export type TextStyle = {
 
 export type BezelFinish = 'black' | 'white' | 'blue' | 'orange'
 
-export type SlideTemplateId = 'textTop' | 'textBottom' | 'deviceOnly' | 'tilted' | 'lockActivity' | 'island'
-export type PairTemplateId = 'panorama' | 'panoTilted' | 'panoTiltedRight'
+export type SlideTemplateId = 'textTop' | 'textBottom' | 'deviceOnly' | 'tilted'
+export type PairTemplateId = 'panorama' | 'panoTilted'
 export type TemplateId = SlideTemplateId | PairTemplateId
+
+// Which way a tilted template leans. Absent on items saved before the direction
+// was an option, which read as 'left' — the only direction those templates had.
+export type TiltDirection = 'left' | 'right'
 
 // Text style keys an item can override. The `...Right` keys exist on pairs only:
 // absent means the right slide uses the same style as the left.
@@ -55,8 +59,10 @@ export type Overrides = Partial<Pick<Theme, 'background' | 'headline' | 'subhead
 type ItemBase = {
   id: string
   screenshot: ScreenshotRef | null
-  // Live Activity cut-out, used by widget templates. Optional for v1 projects.
+  // Live Activity cut-out. Available on every template; absent means none.
   widget?: WidgetState
+  // Lean of the tilted templates; ignored by the others. Absent = 'left'.
+  tilt?: TiltDirection
   headline: string
   subheadline: string
   device: { scale: number; offsetY: number }
@@ -79,6 +85,10 @@ export type SlideItem = Slide | Pair
 
 export type WidgetKind = 'lockActivity' | 'island'
 
+// The Live Activity option on an item: none, or one of the two kinds. Any
+// template can carry any mode.
+export type WidgetMode = 'none' | WidgetKind
+
 // Crop of the widget inside the stored screenshot, in stored-pixel coordinates.
 export type WidgetCrop = {
   kind: WidgetKind
@@ -92,6 +102,9 @@ export type WidgetCrop = {
 export type WidgetScreen = 'screenshot' | 'placeholder'
 
 export type WidgetState = {
+  // Which Live Activity to lift off the screen, if any. Absent = 'none', so
+  // projects saved before this read as having no widget.
+  mode?: WidgetMode
   crop: WidgetCrop | null
   // What the device shows behind the cut-out: the screenshot itself, or a drawn
   // placeholder lock / home screen. Optional for projects saved before this.

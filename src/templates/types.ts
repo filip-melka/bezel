@@ -1,4 +1,4 @@
-import type { SlideItem, TemplateId, TextStyle, Theme, WidgetCrop, WidgetKind } from '../model/types'
+import type { SlideItem, TemplateId, TextStyle, Theme, WidgetCrop } from '../model/types'
 import type { FitResult } from '../render/text'
 
 export type TextMeasurer = (text: string, style: TextStyle, maxWidth: number, maxLines: number) => FitResult
@@ -33,6 +33,8 @@ export type TextBlock = {
 export type WidgetLayout = {
   box: { x: number; y: number; w: number; h: number }
   radius: number
+  // Degrees about the box centre, matching the device the widget sits on.
+  rotation: number
   crop: WidgetCrop
   // Dashed outline where the widget sits in the screenshot, if the template shows one.
   ghost: { x: number; y: number; w: number; h: number; radius: number } | null
@@ -59,8 +61,6 @@ export type TemplateLimits = {
   scale: [number, number]
   deviceOffsetY: [number, number]
   textOffsetY: [number, number]
-  widgetScale?: [number, number]
-  widgetOffsetY?: [number, number]
 }
 
 export type TemplateDef = {
@@ -69,9 +69,9 @@ export type TemplateDef = {
   description: string
   slots: 1 | 2
   hasText: boolean
+  // True on the templates that read `item.tilt`, so the inspector offers a
+  // direction control.
+  hasTilt: boolean
   limits: TemplateLimits
-  // Set on templates that cut a Live Activity out of the screenshot.
-  widgetKind?: WidgetKind
-  widgetDefaultScale?: number
   layout: (input: LayoutInput) => LayoutOutput
 }

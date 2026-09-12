@@ -1,6 +1,6 @@
 import { resolveTheme } from '../model/defaults'
 import type { SlideItem, Theme } from '../model/types'
-import { canvasSizeFor, templateFor } from '../templates/registry'
+import { canvasSizeFor, layoutItem } from '../templates/registry'
 import type { DeviceBox, TextBlock, WidgetLayout } from '../templates/types'
 import { fillBackground } from './background'
 import {
@@ -54,7 +54,6 @@ export function renderItem(
   const report: RenderReport = { textShrunk: false, screenshotAspectMismatch: false, missingScreenshot: false }
   const resolvedTheme = resolveTheme(theme, item.overrides)
   const { w: canvasW, h: canvasH } = canvasSizeFor(item)
-  const template = templateFor(item)
   const screenshot = item.screenshot ? assets(item.screenshot.assetId) : undefined
   const screenshotSize = item.screenshot ? { w: item.screenshot.width, h: item.screenshot.height } : null
 
@@ -63,7 +62,7 @@ export function renderItem(
 
   fillBackground(ctx, resolvedTheme.background, canvasW, canvasH)
 
-  const layout = template.layout({
+  const layout = layoutItem({
     canvasW,
     canvasH,
     item,
@@ -195,7 +194,14 @@ function drawTextBlock(ctx: Ctx2D, block: TextBlock): void {
 // Draws a Live Activity cut-out (a rounded crop of the screenshot) with a
 // drop shadow, plus an optional dashed ghost outline at its original spot.
 function drawWidget(ctx: Ctx2D, widget: WidgetLayout, screenshot: ScreenshotImage, scale: number): void {
-  const { box, radius, crop, ghost } = widget
+  const { box, radius, crop, ghost, rotation } = widget
+  ctx.save()
+  if (rotation) {
+    // Rotate about the cut-out's own centre so it lies on a tilted device.
+    ctx.translate(box.x + box.w / 2, box.y + box.h / 2)
+    ctx.rotate((rotation * Math.PI) / 180)
+    ctx.translate(-(box.x + box.w / 2), -(box.y + box.h / 2))
+  }
   if (ghost) {
     ctx.save()
     ctx.strokeStyle = 'rgba(255,255,255,0.55)'
@@ -222,5 +228,6 @@ function drawWidget(ctx: Ctx2D, widget: WidgetLayout, screenshot: ScreenshotImag
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(screenshot, crop.x, crop.y, crop.w, crop.h, box.x, box.y, box.w, box.h)
+  ctx.restore()
   ctx.restore()
 }

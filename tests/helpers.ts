@@ -3,7 +3,7 @@ import type { SlideItem, TextStyle } from '../src/model/types'
 import { defaultTheme, newPair, newSlide, resolveTheme } from '../src/model/defaults'
 import { fitText } from '../src/render/text'
 import type { LayoutInput } from '../src/templates/types'
-import { canvasSizeFor } from '../src/templates/registry'
+import { canvasSizeFor, layoutItem } from '../src/templates/registry'
 
 // Deterministic width: each character is half the font size wide.
 export const fakeMeasure: MeasureFn = (text, font) => {
@@ -27,6 +27,12 @@ export function layoutInput(item: SlideItem, screenshotSize: { w: number; h: num
     screenshotSize,
     measureText: fakeMeasureText,
   }
+}
+
+// The layout the renderer would use: the template's geometry plus the Live
+// Activity overlay, if the item has one.
+export function layoutOf(item: SlideItem, screenshotSize: { w: number; h: number } | null = null) {
+  return layoutItem(layoutInput(item, screenshotSize))
 }
 
 export { newPair, newSlide }

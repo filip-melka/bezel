@@ -1,5 +1,6 @@
 import { clampNum, deviceFromWidth, layoutTextStack } from './common'
 import type { TemplateDef } from './types'
+import { widgetOvershoot } from './widget'
 
 // SPEC §6.1: headline at top, device anchored to the bottom edge.
 export const textTop: TemplateDef = {
@@ -8,6 +9,7 @@ export const textTop: TemplateDef = {
   description: 'Headline above, device anchored to the bottom edge.',
   slots: 1,
   hasText: true,
+  hasTilt: false,
   limits: {
     scale: [0.85, 1.15],
     deviceOffsetY: [-200, 300],
@@ -26,7 +28,11 @@ export const textTop: TemplateDef = {
     })
     const scale = clampNum(item.device.scale, textTop.limits.scale)
     const offsetY = clampNum(item.device.offsetY, textTop.limits.deviceOffsetY)
-    const device = deviceFromWidth(1080 * scale, canvasW / 2, text.bottom + 140 + offsetY)
+    const w = 1080 * scale
+    // A lifted Live Activity that overshoots the top of the device pushes the
+    // device down, so the cut-out keeps the same gap below the text.
+    const clear = widgetOvershoot(input, w).top
+    const device = deviceFromWidth(w, canvasW / 2, text.bottom + 140 + clear + offsetY)
     return { device, headline: text.headline, subheadline: text.subheadline }
   },
 }
